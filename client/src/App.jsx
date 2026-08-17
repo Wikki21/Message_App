@@ -55,6 +55,7 @@ import ProtectedRoute
 import {
   useAuth,
 } from "./context/AuthContext";
+import Payment from "./pages/Payment";
 
 
 /* =========================================================
@@ -163,7 +164,12 @@ function App() {
             <Login />
           }
         />
-
+<Route
+  path="/payment"
+  element={
+    <Payment />
+  }
+/>
 
         {/* =================================================
             PUBLIC PARTNER CREATE ACCOUNT
