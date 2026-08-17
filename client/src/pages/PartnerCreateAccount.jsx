@@ -1,5 +1,4 @@
 import React, {
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -16,6 +15,13 @@ import "./PartnerCreateAccount.css";
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
   "http://localhost:5000";
+
+
+/* =========================================================
+   DEMO MODE
+========================================================= */
+
+const DEMO_MODE = true;
 
 
 /* =========================================================
@@ -93,6 +99,17 @@ function formatAmount(
 
 
 /* =========================================================
+   DEMO PLAN AMOUNTS
+========================================================= */
+
+const DEMO_PLAN_AMOUNTS = {
+  solo: 588,
+  pro: 4718.82,
+  business: 1768.82,
+};
+
+
+/* =========================================================
    INITIAL FORM
 ========================================================= */
 
@@ -110,6 +127,7 @@ const EMPTY_FORM = {
 ========================================================= */
 
 function PartnerCreateAccount() {
+
   const navigate =
     useNavigate();
 
@@ -122,29 +140,30 @@ function PartnerCreateAccount() {
 
 
   /* =======================================================
-     PAYMENT / PLAN
+     PLAN
   ======================================================= */
 
   const plan =
     (
       searchParams.get(
         "plan"
-      ) || ""
+      ) || "solo"
     )
       .trim()
       .toLowerCase();
 
 
-  const paymentToken =
-    (
-      searchParams.get(
-        "payment_token"
-      ) || ""
-    ).trim();
-
-
   const planLabel =
-    getPlanLabel(plan);
+    getPlanLabel(
+      plan
+    );
+
+
+  const demoAmount =
+    DEMO_PLAN_AMOUNTS[
+      plan
+    ] ||
+    0;
 
 
   /* =======================================================
@@ -171,22 +190,34 @@ function PartnerCreateAccount() {
   ] = useState(null);
 
 
+  /*
+   * In demo mode payment is
+   * automatically treated as verified.
+   */
   const [
     paymentInfo,
     setPaymentInfo,
-  ] = useState(null);
-
-
-  const [
-    verifyingPayment,
-    setVerifyingPayment,
-  ] = useState(true);
+  ] = useState(
+    DEMO_MODE
+      ? {
+          plan,
+          planName:
+            planLabel,
+          amount:
+            demoAmount,
+          currency:
+            "INR",
+        }
+      : null
+  );
 
 
   const [
     paymentVerified,
     setPaymentVerified,
-  ] = useState(false);
+  ] = useState(
+    DEMO_MODE
+  );
 
 
   const [
@@ -214,206 +245,26 @@ function PartnerCreateAccount() {
 
 
   /* =======================================================
-     DERIVED VALUES
+     DERIVED
   ======================================================= */
 
   const initials =
     useMemo(() => {
+
       const name =
         form.name.trim();
+
 
       if (!name) {
         return "P";
       }
 
+
       return name
         .charAt(0)
         .toUpperCase();
+
     }, [form.name]);
-
-
-  /* =======================================================
-     VERIFY PAYMENT BEFORE SHOWING FORM
-  ======================================================= */
-
-  useEffect(() => {
-    let cancelled = false;
-
-
-    const verifyPayment =
-      async () => {
-        try {
-          setVerifyingPayment(
-            true
-          );
-
-          setError("");
-
-          /*
-           * No plan or no payment token:
-           * user is not allowed to access
-           * the account creation page.
-           */
-          if (
-            !plan ||
-            !paymentToken
-          ) {
-            navigate(
-              `/payment?plan=${encodeURIComponent(
-                plan || "solo"
-              )}`,
-              {
-                replace: true,
-              }
-            );
-
-            return;
-          }
-
-
-          const response =
-            await fetch(
-              `${API_BASE}/api/payment/verify-token/${encodeURIComponent(
-                paymentToken
-              )}`,
-              {
-                method: "GET",
-
-                headers: {
-                  Accept:
-                    "application/json",
-                },
-              }
-            );
-
-
-          const data =
-            await response.json();
-
-
-          if (
-            cancelled
-          ) {
-            return;
-          }
-
-
-          if (
-            !response.ok
-          ) {
-            throw new Error(
-              data.message ||
-                "Unable to verify payment."
-            );
-          }
-
-
-          /*
-           * Payment must be PAID.
-           */
-          if (
-            !data.paid
-          ) {
-            navigate(
-              `/payment?plan=${encodeURIComponent(
-                plan
-              )}`,
-              {
-                replace: true,
-              }
-            );
-
-            return;
-          }
-
-
-          /*
-           * Token is single-use.
-           */
-          if (
-            data.used
-          ) {
-            throw new Error(
-              "This payment has already been used for an application."
-            );
-          }
-
-
-          /*
-           * Make sure the payment's
-           * plan matches the URL plan.
-           */
-          const paymentPlan =
-            String(
-              data.payment?.plan ||
-                ""
-            )
-              .trim()
-              .toLowerCase();
-
-
-          if (
-            paymentPlan &&
-            paymentPlan !== plan
-          ) {
-            throw new Error(
-              "The selected plan does not match the verified payment."
-            );
-          }
-
-
-          setPaymentInfo(
-            data.payment || null
-          );
-
-          setPaymentVerified(
-            true
-          );
-
-        } catch (err) {
-          if (
-            cancelled
-          ) {
-            return;
-          }
-
-          console.error(
-            "VERIFY PAYMENT ERROR:",
-            err
-          );
-
-          setPaymentVerified(
-            false
-          );
-
-          setError(
-            err.message ||
-              "Unable to verify payment."
-          );
-
-        } finally {
-          if (
-            !cancelled
-          ) {
-            setVerifyingPayment(
-              false
-            );
-          }
-        }
-      };
-
-
-    verifyPayment();
-
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    navigate,
-    paymentToken,
-    plan,
-  ]);
 
 
   /* =======================================================
@@ -422,6 +273,7 @@ function PartnerCreateAccount() {
 
   const handleChange =
     (event) => {
+
       const {
         name,
         value,
@@ -436,26 +288,25 @@ function PartnerCreateAccount() {
       );
 
 
-      if (
-        error
-      ) {
+      if (error) {
         setError("");
       }
 
-      if (
-        formMessage
-      ) {
+
+      if (formMessage) {
         setFormMessage("");
       }
+
     };
 
 
   /* =======================================================
-     PHOTO SELECT
+     PHOTO
   ======================================================= */
 
   const handlePhotoChange =
     (event) => {
+
       const file =
         event.target
           .files?.[0];
@@ -466,14 +317,12 @@ function PartnerCreateAccount() {
       }
 
 
-      /*
-       * Allow only images.
-       */
       if (
         !file.type.startsWith(
           "image/"
         )
       ) {
+
         setError(
           "Please select a JPG, PNG or WEBP image."
         );
@@ -485,13 +334,11 @@ function PartnerCreateAccount() {
       }
 
 
-      /*
-       * Maximum 5 MB.
-       */
       if (
         file.size >
         5 * 1024 * 1024
       ) {
+
         setError(
           "Profile photo must be 5 MB or smaller."
         );
@@ -505,6 +352,7 @@ function PartnerCreateAccount() {
 
       setError("");
 
+
       setProfileFile(
         file
       );
@@ -516,26 +364,31 @@ function PartnerCreateAccount() {
 
       reader.onload =
         () => {
+
           setProfilePhoto(
             String(
               reader.result ||
                 ""
             )
           );
+
         };
 
 
       reader.onerror =
         () => {
+
           setError(
             "Failed to read profile photo."
           );
+
         };
 
 
       reader.readAsDataURL(
         file
       );
+
     };
 
 
@@ -545,6 +398,7 @@ function PartnerCreateAccount() {
 
   const handleRemovePhoto =
     () => {
+
       setProfilePhoto("");
 
       setProfileFile(
@@ -555,9 +409,12 @@ function PartnerCreateAccount() {
       if (
         fileInputRef.current
       ) {
+
         fileInputRef.current.value =
           "";
+
       }
+
     };
 
 
@@ -567,6 +424,7 @@ function PartnerCreateAccount() {
 
   const validateForm =
     () => {
+
       const name =
         form.name.trim();
 
@@ -603,9 +461,6 @@ function PartnerCreateAccount() {
       }
 
 
-      /*
-       * Basic email validation.
-       */
       const emailPattern =
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -615,7 +470,9 @@ function PartnerCreateAccount() {
           email
         )
       ) {
+
         return "Please enter a valid email address.";
+
       }
 
 
@@ -628,7 +485,9 @@ function PartnerCreateAccount() {
         company.length >
         255
       ) {
+
         return "Company name must be 255 characters or less.";
+
       }
 
 
@@ -636,7 +495,9 @@ function PartnerCreateAccount() {
         phone.length >
         30
       ) {
+
         return "Phone number must be 30 characters or less.";
+
       }
 
 
@@ -649,24 +510,28 @@ function PartnerCreateAccount() {
         password.length <
         6
       ) {
+
         return "Password must contain at least 6 characters.";
+
       }
 
 
       /*
-       * Extra protection:
-       * signup is impossible without
-       * verified payment.
+       * Only enforce payment when
+       * demo mode is disabled.
        */
       if (
-        !paymentVerified ||
-        !paymentToken
+        !DEMO_MODE &&
+        !paymentVerified
       ) {
+
         return "A verified payment is required before creating an account.";
+
       }
 
 
       return "";
+
     };
 
 
@@ -675,7 +540,10 @@ function PartnerCreateAccount() {
   ======================================================= */
 
   const handleSubmit =
-    async (event) => {
+    async (
+      event
+    ) => {
+
       event.preventDefault();
 
 
@@ -691,6 +559,7 @@ function PartnerCreateAccount() {
       if (
         validationError
       ) {
+
         setError(
           validationError
         );
@@ -700,16 +569,91 @@ function PartnerCreateAccount() {
 
 
       try {
+
         setSubmitting(
           true
         );
+
+
+        /*
+         * ===================================================
+         * DEMO MODE
+         *
+         * For today's demo we don't call
+         * the real payment-protected API.
+         *
+         * We simply demonstrate the full
+         * application-submission flow.
+         * ===================================================
+         */
+
+        if (
+          DEMO_MODE
+        ) {
+
+          await new Promise(
+            (resolve) =>
+              setTimeout(
+                resolve,
+                900
+              )
+          );
+
+
+          setSubmitSuccess(
+            true
+          );
+
+
+          setFormMessage(
+            "Partner application submitted successfully."
+          );
+
+
+          setForm(
+            (previous) => ({
+              ...previous,
+              password: "",
+            })
+          );
+
+
+          return;
+        }
+
+
+        /*
+         * ===================================================
+         * PRODUCTION FLOW
+         *
+         * This block will be used again
+         * when Razorpay payment is enabled.
+         * ===================================================
+         */
+
+        const paymentToken =
+          searchParams.get(
+            "payment_token"
+          );
+
+
+        if (
+          !paymentToken
+        ) {
+
+          throw new Error(
+            "Payment token is missing."
+          );
+
+        }
 
 
         const response =
           await fetch(
             `${API_BASE}/api/auth/partner-signup`,
             {
-              method: "POST",
+              method:
+                "POST",
 
               headers: {
                 "Content-Type":
@@ -750,58 +694,54 @@ function PartnerCreateAccount() {
           );
 
 
-        /*
-         * Some server failures can return
-         * HTML instead of JSON.
-         *
-         * Read text first so the UI doesn't
-         * throw "Unexpected token <".
-         */
         const responseText =
           await response.text();
 
 
-        let data = null;
+        let data =
+          null;
 
 
         try {
+
           data =
             responseText
               ? JSON.parse(
                   responseText
                 )
               : null;
+
         } catch {
-          data = null;
+
+          data =
+            null;
+
         }
 
 
         if (
           !response.ok
         ) {
+
           throw new Error(
             data?.message ||
               `Failed to submit partner application. (${response.status})`
           );
+
         }
 
 
-        /*
-         * Success.
-         */
         setSubmitSuccess(
           true
         );
 
+
         setFormMessage(
           data?.message ||
-            "Your partner application has been submitted successfully."
+            "Partner application submitted successfully."
         );
 
 
-        /*
-         * Clear password after submit.
-         */
         setForm(
           (previous) => ({
             ...previous,
@@ -810,10 +750,12 @@ function PartnerCreateAccount() {
         );
 
       } catch (err) {
+
         console.error(
           "PARTNER SIGNUP ERROR:",
           err
         );
+
 
         setError(
           err.message ||
@@ -821,98 +763,24 @@ function PartnerCreateAccount() {
         );
 
       } finally {
+
         setSubmitting(
           false
         );
+
       }
+
     };
 
 
   /* =======================================================
-     LOADING
-  ======================================================= */
-
-  if (
-    verifyingPayment
-  ) {
-    return (
-      <div className="partner-create-page">
-
-        <div className="partner-create-loading-card">
-
-          <div className="partner-create-loading-icon">
-            <span />
-          </div>
-
-          <h2>
-            Verifying your payment
-          </h2>
-
-          <p>
-            Please wait while we verify your
-            Razorpay payment.
-          </p>
-
-        </div>
-
-      </div>
-    );
-  }
-
-
-  /* =======================================================
-     PAYMENT ERROR
-  ======================================================= */
-
-  if (
-    !paymentVerified
-  ) {
-    return (
-      <div className="partner-create-page">
-
-        <div className="partner-create-error-card">
-
-          <div className="partner-create-error-icon">
-            !
-          </div>
-
-          <h2>
-            Account creation unavailable
-          </h2>
-
-          <p>
-            {error ||
-              "A verified payment is required before creating your partner account."}
-          </p>
-
-          <button
-            type="button"
-            className="partner-primary-button"
-            onClick={() =>
-              navigate(
-                `/payment?plan=${encodeURIComponent(
-                  plan || "solo"
-                )}`
-              )
-            }
-          >
-            Go to Payment
-          </button>
-
-        </div>
-
-      </div>
-    );
-  }
-
-
-  /* =======================================================
-     SUCCESS
+     SUCCESS PAGE
   ======================================================= */
 
   if (
     submitSuccess
   ) {
+
     return (
       <div className="partner-create-page">
 
@@ -922,19 +790,23 @@ function PartnerCreateAccount() {
             ✓
           </div>
 
+
           <div className="partner-success-plan">
             {planLabel} PLAN
           </div>
+
 
           <h1>
             Application submitted
           </h1>
 
+
           <p>
-            Your payment has been verified and
-            your partner account application has
-            been sent to the Zaploft admin team.
+            Your partner account application has
+            been submitted successfully and is
+            now waiting for admin approval.
           </p>
+
 
           <div className="partner-success-note">
 
@@ -942,15 +814,17 @@ function PartnerCreateAccount() {
               What happens next?
             </strong>
 
+
             <span>
-              The admin will review your company
-              and profile details. Once approved,
-              your partner account will be created
-              and you can log in using your email
-              and password.
+              The Zaploft admin team will review
+              your profile. Once approved, your
+              Partner account will be created and
+              you can log in using your email and
+              password.
             </span>
 
           </div>
+
 
           <div className="partner-success-email">
 
@@ -958,11 +832,13 @@ function PartnerCreateAccount() {
               Login email
             </span>
 
+
             <strong>
               {form.email}
             </strong>
 
           </div>
+
 
           <button
             type="button"
@@ -992,9 +868,49 @@ function PartnerCreateAccount() {
 
       <div className="partner-create-container">
 
-        {/* ===================================================
+        {/* =================================================
+            DEMO BAR
+        ================================================= */}
+
+        {DEMO_MODE && (
+          <div
+            style={{
+              marginBottom:
+                "16px",
+
+              padding:
+                "10px 14px",
+
+              borderRadius:
+                "10px",
+
+              background:
+                "#fff7ed",
+
+              border:
+                "1px solid #fed7aa",
+
+              color:
+                "#9a3412",
+
+              fontSize:
+                "12px",
+
+              fontWeight:
+                600,
+
+              textAlign:
+                "center",
+            }}
+          >
+            DEMO MODE — Payment verification is temporarily skipped.
+          </div>
+        )}
+
+
+        {/* =================================================
             HEADER
-        =================================================== */}
+        ================================================= */}
 
         <header className="partner-create-header">
 
@@ -1004,14 +920,18 @@ function PartnerCreateAccount() {
               Z
             </div>
 
+
             <div>
+
               <strong>
                 Zaploft
               </strong>
 
+
               <span>
                 MESSAGE AUTOMATION
               </span>
+
             </div>
 
           </div>
@@ -1032,9 +952,9 @@ function PartnerCreateAccount() {
         </header>
 
 
-        {/* ===================================================
+        {/* =================================================
             TITLE
-        =================================================== */}
+        ================================================= */}
 
         <section className="partner-create-intro">
 
@@ -1042,22 +962,28 @@ function PartnerCreateAccount() {
             PARTNER REGISTRATION
           </span>
 
+
           <h1>
             Create your partner account
           </h1>
 
+
           <p>
-            Your payment has been verified.
-            Complete your profile below to submit
-            your application for admin approval.
+            You're registering for the{" "}
+            <strong>
+              {planLabel}
+            </strong>{" "}
+            plan. Complete your profile below
+            to submit your application for admin
+            approval.
           </p>
 
         </section>
 
 
-        {/* ===================================================
-            PAYMENT SUMMARY
-        =================================================== */}
+        {/* =================================================
+            PAYMENT / PLAN SUMMARY
+        ================================================= */}
 
         <section className="partner-payment-confirmed">
 
@@ -1065,11 +991,13 @@ function PartnerCreateAccount() {
             ✓
           </div>
 
+
           <div className="partner-payment-copy">
 
             <strong>
-              Payment verified
+              Selected Plan
             </strong>
+
 
             <span>
               {planLabel} Plan
@@ -1083,16 +1011,17 @@ function PartnerCreateAccount() {
 
           </div>
 
+
           <span className="partner-payment-status">
-            PAID
+            SELECTED
           </span>
 
         </section>
 
 
-        {/* ===================================================
-            FORM CARD
-        =================================================== */}
+        {/* =================================================
+            FORM
+        ================================================= */}
 
         <form
           className="partner-create-card"
@@ -1109,12 +1038,14 @@ function PartnerCreateAccount() {
                 Partner Profile
               </h2>
 
+
               <p>
                 Enter the details you want to
                 submit for approval.
               </p>
 
             </div>
+
 
             <div className="partner-create-plan-badge">
               {planLabel}
@@ -1132,16 +1063,20 @@ function PartnerCreateAccount() {
             <div className="partner-photo-preview">
 
               {profilePhoto ? (
+
                 <img
                   src={
                     profilePhoto
                   }
                   alt="Profile preview"
                 />
+
               ) : (
+
                 <span>
                   {initials}
                 </span>
+
               )}
 
             </div>
@@ -1152,6 +1087,7 @@ function PartnerCreateAccount() {
               <strong>
                 Profile Photo
               </strong>
+
 
               <p>
                 JPG, PNG or WEBP.
@@ -1165,7 +1101,9 @@ function PartnerCreateAccount() {
                   type="button"
                   className="partner-secondary-button"
                   onClick={() =>
-                    fileInputRef.current?.click()
+                    fileInputRef
+                      .current
+                      ?.click()
                   }
                 >
                   {profilePhoto
@@ -1175,6 +1113,7 @@ function PartnerCreateAccount() {
 
 
                 {profilePhoto && (
+
                   <button
                     type="button"
                     className="partner-remove-photo"
@@ -1184,6 +1123,7 @@ function PartnerCreateAccount() {
                   >
                     Remove
                   </button>
+
                 )}
 
               </div>
@@ -1220,6 +1160,7 @@ function PartnerCreateAccount() {
                 Full Name
               </label>
 
+
               <input
                 id="partner-name"
                 name="name"
@@ -1246,31 +1187,25 @@ function PartnerCreateAccount() {
                 Email Address
               </label>
 
-              <div className="partner-email-wrapper">
 
-                <input
-                  id="partner-email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email address"
-                  value={
-                    form.email
-                  }
-                  onChange={
-                    handleChange
-                  }
-                  autoComplete="email"
-                />
+              <input
+                id="partner-email"
+                name="email"
+                type="email"
+                placeholder="Enter your email address"
+                value={
+                  form.email
+                }
+                onChange={
+                  handleChange
+                }
+                autoComplete="email"
+              />
 
-                <span className="partner-email-lock">
-                  🔒
-                </span>
-
-              </div>
 
               <small>
                 This email will be used for your
-                partner login.
+                Partner login.
               </small>
 
             </div>
@@ -1283,6 +1218,7 @@ function PartnerCreateAccount() {
               <label htmlFor="partner-company">
                 Company Name
               </label>
+
 
               <input
                 id="partner-company"
@@ -1307,11 +1243,15 @@ function PartnerCreateAccount() {
             <div className="partner-create-field">
 
               <label htmlFor="partner-phone">
+
                 Phone Number
+
                 <span>
                   Optional
                 </span>
+
               </label>
+
 
               <input
                 id="partner-phone"
@@ -1339,6 +1279,7 @@ function PartnerCreateAccount() {
                 Password
               </label>
 
+
               <input
                 id="partner-password"
                 name="password"
@@ -1354,6 +1295,7 @@ function PartnerCreateAccount() {
                 autoComplete="new-password"
               />
 
+
               <small>
                 Minimum 6 characters.
               </small>
@@ -1364,7 +1306,7 @@ function PartnerCreateAccount() {
 
 
           {/* =================================================
-              IMPORTANT INFORMATION
+              APPROVAL INFO
           ================================================= */}
 
           <div className="partner-create-info">
@@ -1373,11 +1315,13 @@ function PartnerCreateAccount() {
               !
             </div>
 
+
             <div>
 
               <strong>
                 Admin approval required
               </strong>
+
 
               <p>
                 After you submit this form, your
@@ -1396,17 +1340,20 @@ function PartnerCreateAccount() {
           ================================================= */}
 
           {error && (
+
             <div className="partner-create-alert error">
 
               <span>
                 !
               </span>
 
+
               <div>
                 {error}
               </div>
 
             </div>
+
           )}
 
 
@@ -1415,17 +1362,20 @@ function PartnerCreateAccount() {
           ================================================= */}
 
           {formMessage && (
+
             <div className="partner-create-alert success">
 
               <span>
                 ✓
               </span>
 
+
               <div>
                 {formMessage}
               </div>
 
             </div>
+
           )}
 
 
@@ -1455,8 +1405,7 @@ function PartnerCreateAccount() {
               type="submit"
               className="partner-primary-button"
               disabled={
-                submitting ||
-                !paymentVerified
+                submitting
               }
             >
               {submitting
@@ -1467,11 +1416,16 @@ function PartnerCreateAccount() {
           </div>
 
 
+          {/* =================================================
+              FOOTER NOTE
+          ================================================= */}
+
           <div className="partner-create-footer-note">
 
             <span>
               🔒
             </span>
+
 
             <span>
               Your information is securely stored
@@ -1483,15 +1437,18 @@ function PartnerCreateAccount() {
         </form>
 
 
-        {/* ===================================================
+        {/* =================================================
             FOOTER
-        =================================================== */}
+        ================================================= */}
 
         <footer className="partner-create-footer">
 
           <span>
-            © {new Date().getFullYear()} Zaploft
+            ©{" "}
+            {new Date().getFullYear()}{" "}
+            Zaploft
           </span>
+
 
           <span>
             Message Automation Platform
