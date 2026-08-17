@@ -16,12 +16,12 @@ const API_BASE =
   import.meta.env.VITE_API_BASE ||
   "http://localhost:5000";
 
+const DEMO_MODE = true;
 
 /* =========================================================
    DEMO MODE
 
 
-const DEMO_MODE = true;
 
 
 /* =========================================================
