@@ -39,97 +39,64 @@ router.get(
   ) => {
     try {
 
-      /* -----------------------------------------------------
-         TOTAL PARTNERS
-      ----------------------------------------------------- */
-
       const partnersResult =
         await pool.query(
           `
           SELECT
             COUNT(*)::int AS count
-
           FROM users
-
           WHERE role = 'PARTNER'
           `
         );
 
-
-      /* -----------------------------------------------------
-         TOTAL CUSTOMERS
-      ----------------------------------------------------- */
 
       const customersResult =
         await pool.query(
           `
           SELECT
             COUNT(*)::int AS count
-
           FROM customers
           `
         );
 
-
-      /* -----------------------------------------------------
-         TOTAL CAMPAIGNS
-      ----------------------------------------------------- */
 
       const campaignsResult =
         await pool.query(
           `
           SELECT
             COUNT(*)::int AS count
-
           FROM campaigns
           `
         );
 
-
-      /* -----------------------------------------------------
-         TOTAL MESSAGES
-      ----------------------------------------------------- */
 
       const messagesResult =
         await pool.query(
           `
           SELECT
             COUNT(*)::int AS count
-
           FROM messages
           `
         );
 
-
-      /* -----------------------------------------------------
-         PENDING PARTNER APPLICATIONS
-      ----------------------------------------------------- */
 
       const pendingApplicationsResult =
         await pool.query(
           `
           SELECT
             COUNT(*)::int AS count
-
           FROM partner_signup_requests
-
           WHERE status = 'PENDING'
           `
         );
 
-
-      /* -----------------------------------------------------
-         PENDING PROFILE REQUESTS
-      ----------------------------------------------------- */
 
       const pendingProfileRequestsResult =
         await pool.query(
           `
           SELECT
             COUNT(*)::int AS count
-
           FROM partner_profile_requests
-
           WHERE status = 'PENDING'
           `
         );
@@ -170,6 +137,7 @@ router.get(
             pendingProfileRequestsResult
               .rows[0]
               .count,
+
         },
 
       });
@@ -209,6 +177,7 @@ router.get(
     req,
     res
   ) => {
+
     try {
 
       const result =
@@ -240,26 +209,18 @@ router.get(
             (
               SELECT
                 COUNT(*)
-
               FROM customers c
-
               WHERE
-                c.partner_id =
-                u.id
-
+                c.partner_id = u.id
             ) AS customer_count,
 
 
             (
               SELECT
                 COUNT(*)
-
               FROM campaigns ca
-
               WHERE
-                ca.partner_id =
-                u.id
-
+                ca.partner_id = u.id
             ) AS campaign_count
 
 
@@ -320,6 +281,7 @@ router.patch(
     req,
     res
   ) => {
+
     try {
 
       const {
@@ -335,8 +297,7 @@ router.patch(
 
           SET
 
-            is_active =
-              $1,
+            is_active = $1,
 
             updated_at =
               CURRENT_TIMESTAMP
@@ -346,8 +307,7 @@ router.patch(
 
             id = $2
 
-            AND role =
-              'PARTNER'
+            AND role = 'PARTNER'
 
 
           RETURNING
@@ -433,10 +393,13 @@ router.patch(
 /* =========================================================
    PARTNER SIGNUP APPLICATIONS
 
-   These are created only after
-   Razorpay payment verification.
+   Supports:
 
-   GET /api/admin/partner-applications
+   1. CURRENT NO-PAYMENT FLOW
+      payment_session_id = NULL
+
+   2. FUTURE RAZORPAY FLOW
+      payment_session_id exists
 ========================================================= */
 
 router.get(
@@ -445,6 +408,7 @@ router.get(
     req,
     res
   ) => {
+
     try {
 
       const result =
@@ -503,12 +467,10 @@ router.get(
               AS admin_name
 
 
-          FROM
-            partner_signup_requests a
+          FROM partner_signup_requests a
 
 
-          LEFT JOIN
-            partner_payment_sessions p
+          LEFT JOIN partner_payment_sessions p
 
             ON p.id =
               a.payment_session_id
@@ -523,14 +485,9 @@ router.get(
           ORDER BY
 
             CASE
-
-              WHEN a.status =
-                'PENDING'
-
+              WHEN a.status = 'PENDING'
               THEN 0
-
               ELSE 1
-
             END,
 
             a.created_at DESC
@@ -582,6 +539,7 @@ router.get(
     req,
     res
   ) => {
+
     try {
 
       const result =
@@ -636,12 +594,10 @@ router.get(
             p.razorpay_payment_id
 
 
-          FROM
-            partner_signup_requests a
+          FROM partner_signup_requests a
 
 
-          LEFT JOIN
-            partner_payment_sessions p
+          LEFT JOIN partner_payment_sessions p
 
             ON p.id =
               a.payment_session_id
@@ -716,11 +672,19 @@ router.get(
    /api/admin/partner-applications/:id/approve
 
 
-   IMPORTANT:
+   IMPORTANT
 
-   This is the ONLY place where the
-   pending application becomes a real
-   PARTNER user account.
+   NO-PAYMENT APPLICATION:
+     payment_session_id = NULL
+     -> approval allowed
+
+   RAZORPAY APPLICATION:
+     payment_session_id exists
+     -> payment status MUST be PAID
+
+   After approval:
+     partner_signup_requests = APPROVED
+     users = PARTNER
 ========================================================= */
 
 router.patch(
@@ -754,6 +718,8 @@ router.patch(
 
             payment_session_id,
 
+            payment_token,
+
             plan_key,
 
             plan_name,
@@ -773,8 +739,7 @@ router.patch(
             status
 
 
-          FROM
-            partner_signup_requests
+          FROM partner_signup_requests
 
 
           WHERE
@@ -790,9 +755,7 @@ router.patch(
 
 
       if (
-        applicationResult
-          .rows
-          .length ===
+        applicationResult.rows.length ===
         0
       ) {
 
@@ -846,156 +809,149 @@ router.patch(
       }
 
 
-      /* -----------------------------------------------------
-         VERIFY LINKED PAYMENT
-      ----------------------------------------------------- */
+      /* =====================================================
+         PAYMENT CHECK
+         
+         NO-PAYMENT DEMO:
+         payment_session_id = NULL
+         -> continue
 
-      if (
-        !application
-          .payment_session_id
-      ) {
+         RAZORPAY:
+         payment_session_id exists
+         -> must be PAID
+      ===================================================== */
 
-        await client.query(
-          "ROLLBACK"
-        );
-
-
-        return res.status(
-          400
-        ).json({
-
-          success: false,
-
-          message:
-            "This application does not have a linked payment.",
-
-        });
-      }
-
-
-      const paymentResult =
-        await client.query(
-          `
-          SELECT
-
-            id,
-
-            status,
-
-            plan_key,
-
-            plan_name,
-
-            amount,
-
-            currency,
-
-            razorpay_plan_id,
-
-            razorpay_subscription_id,
-
-            razorpay_payment_id
-
-
-          FROM
-            partner_payment_sessions
-
-
-          WHERE
-            id = $1
-
-
-          FOR UPDATE
-          `,
-          [
-            application
-              .payment_session_id,
-          ]
-        );
+      let payment = null;
 
 
       if (
-        paymentResult.rows.length ===
-        0
+        application.payment_session_id
       ) {
 
-        await client.query(
-          "ROLLBACK"
-        );
+        const paymentResult =
+          await client.query(
+            `
+            SELECT
+
+              id,
+
+              status,
+
+              plan_key,
+
+              plan_name,
+
+              amount,
+
+              currency,
+
+              razorpay_plan_id,
+
+              razorpay_subscription_id,
+
+              razorpay_payment_id
 
 
-        return res.status(
-          400
-        ).json({
+            FROM partner_payment_sessions
 
-          success: false,
 
-          message:
-            "Linked payment session was not found.",
+            WHERE
+              id = $1
 
-        });
+
+            FOR UPDATE
+            `,
+            [
+              application
+                .payment_session_id,
+            ]
+          );
+
+
+        if (
+          paymentResult.rows.length ===
+          0
+        ) {
+
+          await client.query(
+            "ROLLBACK"
+          );
+
+
+          return res.status(
+            400
+          ).json({
+
+            success: false,
+
+            message:
+              "Linked payment session was not found.",
+
+          });
+        }
+
+
+        payment =
+          paymentResult.rows[0];
+
+
+        if (
+          payment.status !==
+          "PAID"
+        ) {
+
+          await client.query(
+            "ROLLBACK"
+          );
+
+
+          return res.status(
+            400
+          ).json({
+
+            success: false,
+
+            message:
+              "The linked payment has not been verified.",
+
+          });
+        }
+
+
+        /* ---------------------------------------------------
+           PLAN MATCH
+        --------------------------------------------------- */
+
+        if (
+          application.plan_key &&
+          payment.plan_key &&
+          application.plan_key !==
+            payment.plan_key
+        ) {
+
+          await client.query(
+            "ROLLBACK"
+          );
+
+
+          return res.status(
+            400
+          ).json({
+
+            success: false,
+
+            message:
+              "Application plan does not match the paid plan.",
+
+          });
+        }
+
       }
 
 
-      const payment =
-        paymentResult.rows[0];
-
-
-      if (
-        payment.status !==
-        "PAID"
-      ) {
-
-        await client.query(
-          "ROLLBACK"
-        );
-
-
-        return res.status(
-          400
-        ).json({
-
-          success: false,
-
-          message:
-            "The linked payment has not been verified.",
-
-        });
-      }
-
-
-      /* -----------------------------------------------------
-         VERIFY PLAN MATCH
-      ----------------------------------------------------- */
-
-      if (
-        application.plan_key &&
-        payment.plan_key &&
-        application.plan_key !==
-          payment.plan_key
-      ) {
-
-        await client.query(
-          "ROLLBACK"
-        );
-
-
-        return res.status(
-          400
-        ).json({
-
-          success: false,
-
-          message:
-            "Application plan does not match the paid plan.",
-
-        });
-      }
-
-
-      /* -----------------------------------------------------
+      /* =====================================================
          CHECK EMAIL
-      ----------------------------------------------------- */
+      ===================================================== */
 
       const existingUser =
         await client.query(
@@ -1049,9 +1005,9 @@ router.patch(
       }
 
 
-      /* -----------------------------------------------------
-         CREATE REAL PARTNER ACCOUNT
-      ----------------------------------------------------- */
+      /* =====================================================
+         CREATE ACTUAL PARTNER ACCOUNT
+      ===================================================== */
 
       const partnerResult =
         await client.query(
@@ -1079,7 +1035,6 @@ router.patch(
             updated_at
           )
 
-
           VALUES
           (
             $1,
@@ -1102,7 +1057,6 @@ router.patch(
 
             CURRENT_TIMESTAMP
           )
-
 
           RETURNING
 
@@ -1142,9 +1096,9 @@ router.patch(
         );
 
 
-      /* -----------------------------------------------------
+      /* =====================================================
          ADMIN NOTE
-      ----------------------------------------------------- */
+      ===================================================== */
 
       const adminNote =
         typeof req.body.note ===
@@ -1153,9 +1107,9 @@ router.patch(
           : null;
 
 
-      /* -----------------------------------------------------
+      /* =====================================================
          MARK APPLICATION APPROVED
-      ----------------------------------------------------- */
+      ===================================================== */
 
       await client.query(
         `
@@ -1175,7 +1129,6 @@ router.patch(
           reviewed_at =
             CURRENT_TIMESTAMP
 
-
         WHERE
           id = $3
         `,
@@ -1189,6 +1142,10 @@ router.patch(
       );
 
 
+      /* =====================================================
+         COMMIT
+      ===================================================== */
+
       await client.query(
         "COMMIT"
       );
@@ -1199,7 +1156,20 @@ router.patch(
         success: true,
 
         message:
-          "Partner application approved and partner account created successfully.",
+          payment
+            ? "Partner application approved and partner account created successfully."
+            : "Partner application approved without payment and partner account created successfully.",
+
+        payment_required:
+          Boolean(
+            application
+              .payment_session_id
+          ),
+
+        payment_verified:
+          payment
+            ? true
+            : false,
 
         partner:
           partnerResult.rows[0],
@@ -1246,6 +1216,12 @@ router.patch(
         message:
           "Failed to approve partner application.",
 
+        error:
+          process.env.NODE_ENV ===
+          "development"
+            ? error.message
+            : undefined,
+
       });
 
     } finally {
@@ -1270,6 +1246,7 @@ router.patch(
     req,
     res
   ) => {
+
     try {
 
       const adminNote =
@@ -1313,6 +1290,8 @@ router.patch(
 
             payment_session_id,
 
+            payment_token,
+
             plan_key,
 
             plan_name,
@@ -1326,6 +1305,8 @@ router.patch(
             status,
 
             admin_note,
+
+            created_at,
 
             reviewed_at
           `,
@@ -1395,9 +1376,6 @@ router.patch(
 
 /* =========================================================
    PARTNER PROFILE CHANGE REQUESTS
-
-   These remain exactly separate from
-   first-time partner applications.
 ========================================================= */
 
 
@@ -1413,6 +1391,7 @@ router.get(
     req,
     res
   ) => {
+
     try {
 
       const result =
@@ -1472,14 +1451,9 @@ router.get(
           ORDER BY
 
             CASE
-
-              WHEN r.status =
-                'PENDING'
-
+              WHEN r.status = 'PENDING'
               THEN 0
-
               ELSE 1
-
             END,
 
             r.created_at DESC
@@ -1531,6 +1505,7 @@ router.get(
     req,
     res
   ) => {
+
     try {
 
       const result =
@@ -1653,10 +1628,6 @@ router.patch(
       );
 
 
-      /* -----------------------------------------------------
-         LOCK REQUEST
-      ----------------------------------------------------- */
-
       const requestResult =
         await client.query(
           `
@@ -1679,8 +1650,7 @@ router.patch(
             status
 
 
-          FROM
-            partner_profile_requests
+          FROM partner_profile_requests
 
 
           WHERE
@@ -1723,10 +1693,6 @@ router.patch(
           .rows[0];
 
 
-      /* -----------------------------------------------------
-         CHECK STATUS
-      ----------------------------------------------------- */
-
       if (
         request.status !==
         "PENDING"
@@ -1750,20 +1716,12 @@ router.patch(
       }
 
 
-      /* -----------------------------------------------------
-         OPTIONAL ADMIN NOTE
-      ----------------------------------------------------- */
-
       const adminNote =
         typeof req.body.note ===
         "string"
           ? req.body.note.trim()
           : null;
 
-
-      /* -----------------------------------------------------
-         UPDATE PARTNER
-      ----------------------------------------------------- */
 
       const updatedPartner =
         await client.query(
@@ -1861,10 +1819,6 @@ router.patch(
       }
 
 
-      /* -----------------------------------------------------
-         MARK APPROVED
-      ----------------------------------------------------- */
-
       await client.query(
         `
         UPDATE partner_profile_requests
@@ -1960,6 +1914,7 @@ router.patch(
     req,
     res
   ) => {
+
     try {
 
       const adminNote =
