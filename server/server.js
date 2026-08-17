@@ -1,24 +1,97 @@
-import "dotenv/config";
-
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
 
-import whatsappRouter from "./routes/whatsapp.js";
-import whatsappWebhookRouter from "./routes/whatsappWebhook.js";
-import authRouter from "./routes/auth.js";
-import adminRouter from "./routes/admin.js";
-import partnerRouter from "./routes/partner.js";
+import whatsappRouter
+  from "./routes/whatsapp.js";
 
-const app = express();
+import whatsappWebhookRouter
+  from "./routes/whatsappWebhook.js";
+
+import authRouter
+  from "./routes/auth.js";
+
+import adminRouter
+  from "./routes/admin.js";
+
+import partnerRouter
+  from "./routes/partner.js";
+
+import paymentRouter, {
+  handleRazorpayWebhook,
+} from "./routes/payment.js";
+
+
+dotenv.config();
+
+
+const app =
+  express();
+
 
 /* =========================================================
-CORS
+   CORS
 ========================================================= */
 
-app.use(cors());
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+
+  "https://app.zaploft.in",
+
+  "https://zaploft.in",
+
+  "https://www.zaploft.in",
+
+  "https://zaploft.vercel.app",
+].filter(Boolean);
+
+
+app.use(
+  cors({
+    origin(
+      origin,
+      callback
+    ) {
+      if (
+        !origin ||
+        allowedOrigins.includes(
+          origin
+        )
+      ) {
+        callback(
+          null,
+          true
+        );
+
+        return;
+      }
+
+      callback(
+        new Error(
+          "Not allowed by CORS"
+        )
+      );
+    },
+  })
+);
+
 
 /* =========================================================
-JSON BODY
+   RAZORPAY WEBHOOK
+   MUST BE BEFORE express.json()
+========================================================= */
+
+app.post(
+  "/api/payment/webhook",
+  express.raw({
+    type: "application/json",
+  }),
+  handleRazorpayWebhook
+);
+
+
+/* =========================================================
+   JSON
 ========================================================= */
 
 app.use(
@@ -27,8 +100,21 @@ app.use(
   })
 );
 
+
 /* =========================================================
-WHATSAPP API
+   PAYMENT API
+
+   /api/payment/...
+========================================================= */
+
+app.use(
+  "/api/payment",
+  paymentRouter
+);
+
+
+/* =========================================================
+   WHATSAPP
 ========================================================= */
 
 app.use(
@@ -36,15 +122,17 @@ app.use(
   whatsappRouter
 );
 
-/* =========================================================
-TEMPLATES
 
-GET /api/templates
+/* =========================================================
+   TEMPLATES
 ========================================================= */
 
 app.get(
   "/api/templates",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const {
         getTemplates,
@@ -57,7 +145,9 @@ app.get(
 
       return res.json({
         success: true,
-        templates: data?.data || [],
+
+        templates:
+          data?.data || [],
       });
 
     } catch (error) {
@@ -78,14 +168,9 @@ app.get(
   }
 );
 
+
 /* =========================================================
-META WHATSAPP WEBHOOK
-
-GET:
-/api/whatsapp/webhook
-
-POST:
-/api/whatsapp/webhook
+   WHATSAPP WEBHOOK
 ========================================================= */
 
 app.use(
@@ -93,23 +178,59 @@ app.use(
   whatsappWebhookRouter
 );
 
+
 /* =========================================================
-HEALTH CHECK
+   AUTH
+========================================================= */
+
+app.use(
+  "/api/auth",
+  authRouter
+);
+
+
+/* =========================================================
+   ADMIN
+========================================================= */
+
+app.use(
+  "/api/admin",
+  adminRouter
+);
+
+
+/* =========================================================
+   PARTNER
+========================================================= */
+
+app.use(
+  "/api/partner",
+  partnerRouter
+);
+
+
+/* =========================================================
+   HEALTH
 ========================================================= */
 
 app.get(
   "/",
-  (req, res) => {
+  (
+    req,
+    res
+  ) => {
     return res.json({
       success: true,
+
       message:
         "Zaploft API is running",
     });
   }
 );
 
+
 /* =========================================================
-GLOBAL ERROR HANDLER
+   ERROR HANDLER
 ========================================================= */
 
 app.use(
@@ -128,6 +249,7 @@ app.use(
       error.status || 500
     ).json({
       success: false,
+
       message:
         error.message ||
         "Internal server error.",
@@ -136,29 +258,17 @@ app.use(
 );
 
 
-app.use(
-  "/api/auth",
-  authRouter
-);
-
-app.use(
-  "/api/admin",
-  adminRouter
-);
-
-app.use(
-  "/api/partner",
-  partnerRouter
-);
 /* =========================================================
-START SERVER
+   START SERVER
 ========================================================= */
 
 const PORT =
   process.env.PORT || 5000;
 
+
 app.listen(
   PORT,
+  "0.0.0.0",
   () => {
     console.log(
       "========================================"
@@ -169,19 +279,19 @@ app.listen(
     );
 
     console.log(
-      `WhatsApp Send API:`
+      `Payment API:`
     );
 
     console.log(
-      `http://localhost:${PORT}/api/whatsapp/send`
+      `http://localhost:${PORT}/api/payment`
     );
 
     console.log(
-      `WhatsApp Webhook:`
+      `Razorpay Webhook:`
     );
 
     console.log(
-      `http://localhost:${PORT}/api/whatsapp/webhook`
+      `http://localhost:${PORT}/api/payment/webhook`
     );
 
     console.log(
