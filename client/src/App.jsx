@@ -1,3 +1,4 @@
+
 import React from "react";
 
 import {
@@ -5,6 +6,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useSearchParams,
 } from "react-router-dom";
 
 import DashboardLayout
@@ -55,7 +57,69 @@ import ProtectedRoute
 import {
   useAuth,
 } from "./context/AuthContext";
-import Payment from "./pages/Payment";
+
+import Payment
+  from "./pages/Payment";
+
+
+/* =========================================================
+   DEMO PAYMENT REDIRECT
+
+   For today's demo:
+
+   /payment?plan=solo
+        ↓
+   /create-account?plan=solo
+
+   /payment?plan=pro
+        ↓
+   /create-account?plan=pro
+
+   /payment?plan=business
+        ↓
+   /create-account?plan=business
+========================================================= */
+
+function DemoPaymentRedirect() {
+  const [
+    searchParams,
+  ] = useSearchParams();
+
+
+  const plan =
+    (
+      searchParams.get(
+        "plan"
+      ) || "solo"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const validPlans = [
+    "solo",
+    "pro",
+    "business",
+  ];
+
+
+  const selectedPlan =
+    validPlans.includes(
+      plan
+    )
+      ? plan
+      : "solo";
+
+
+  return (
+    <Navigate
+      to={`/create-account?plan=${encodeURIComponent(
+        selectedPlan
+      )}`}
+      replace
+    />
+  );
+}
 
 
 /* =========================================================
@@ -114,7 +178,9 @@ function RootRedirect() {
   }
 
 
-  if (role === "ADMIN") {
+  if (
+    role === "ADMIN"
+  ) {
     return (
       <Navigate
         to="/admin/dashboard"
@@ -124,7 +190,9 @@ function RootRedirect() {
   }
 
 
-  if (role === "PARTNER") {
+  if (
+    role === "PARTNER"
+  ) {
     return (
       <Navigate
         to="/dashboard"
@@ -164,12 +232,42 @@ function App() {
             <Login />
           }
         />
-<Route
-  path="/payment"
-  element={
-    <Payment />
-  }
-/>
+
+
+        {/* =================================================
+            DEMO PAYMENT REDIRECT
+
+            IMPORTANT:
+            Payment page is bypassed for today's demo.
+        ================================================= */}
+
+        <Route
+          path="/payment"
+          element={
+            <DemoPaymentRedirect />
+          }
+        />
+
+
+        {/* =================================================
+            KEEP PAYMENT COMPONENT AVAILABLE
+
+            You can remove this later when real
+            Razorpay flow is activated.
+
+            For today's demo the route above handles
+            /payment and redirects to Create Account.
+        ================================================= */}
+
+        {/* 
+        <Route
+          path="/payment-real"
+          element={
+            <Payment />
+          }
+        />
+        */}
+
 
         {/* =================================================
             PUBLIC PARTNER CREATE ACCOUNT
@@ -342,7 +440,7 @@ function App() {
 
 
         {/* =================================================
-            ADMIN APPLICATION
+            ADMIN
         ================================================= */}
 
         <Route
