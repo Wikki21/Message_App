@@ -1,320 +1,976 @@
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 
 import "./PartnerCreateAccount.css";
+
 
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
   "http://localhost:5000";
 
+
+/* =========================================================
+   PLAN LABELS
+========================================================= */
+
+const PLAN_LABELS = {
+  solo: "Solo",
+  pro: "Pro",
+  business: "Business",
+};
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function getPlanLabel(plan) {
+  return (
+    PLAN_LABELS[
+      String(plan || "")
+        .trim()
+        .toLowerCase()
+    ] ||
+    "Partner"
+  );
+}
+
+
+function formatAmount(
+  amount,
+  currency = "INR"
+) {
+  if (
+    amount === undefined ||
+    amount === null ||
+    amount === ""
+  ) {
+    return "";
+  }
+
+  const numericAmount =
+    Number(amount);
+
+  if (
+    Number.isNaN(
+      numericAmount
+    )
+  ) {
+    return "";
+  }
+
+  if (
+    currency === "INR"
+  ) {
+    return numericAmount.toLocaleString(
+      "en-IN",
+      {
+        style: "currency",
+        currency: "INR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }
+    );
+  }
+
+  return numericAmount.toLocaleString(
+    "en-IN",
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+  );
+}
+
+
+/* =========================================================
+   INITIAL FORM
+========================================================= */
+
+const EMPTY_FORM = {
+  name: "",
+  email: "",
+  company_name: "",
+  phone: "",
+  password: "",
+};
+
+
+/* =========================================================
+   COMPONENT
+========================================================= */
+
 function PartnerCreateAccount() {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
-  /* =========================================================
-     SELECTED PLAN
-  ========================================================= */
+  const [
+    searchParams,
+  ] = useSearchParams();
 
-  const params = new URLSearchParams(
-    location.search
+  const fileInputRef =
+    useRef(null);
+
+
+  /* =======================================================
+     PAYMENT / PLAN
+  ======================================================= */
+
+  const plan =
+    (
+      searchParams.get(
+        "plan"
+      ) || ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const paymentToken =
+    (
+      searchParams.get(
+        "payment_token"
+      ) || ""
+    ).trim();
+
+
+  const planLabel =
+    getPlanLabel(plan);
+
+
+  /* =======================================================
+     STATE
+  ======================================================= */
+
+  const [
+    form,
+    setForm,
+  ] = useState(
+    EMPTY_FORM
   );
 
-  const selectedPlan =
-    params.get("plan") || "Standard";
+
+  const [
+    profilePhoto,
+    setProfilePhoto,
+  ] = useState("");
 
 
-  /* =========================================================
-     FORM
-  ========================================================= */
-
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    company_name: "",
-    phone: "",
-    profile_photo: "",
-  });
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [submitted, setSubmitted] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  /* =========================================================
-     INPUT CHANGE
-  ========================================================= */
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-
-    setError("");
-  };
+  const [
+    profileFile,
+    setProfileFile,
+  ] = useState(null);
 
 
-  /* =========================================================
-     PROFILE PHOTO
-  ========================================================= */
-
-  const handlePhotoChange = (event) => {
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setError(
-        "Please select a valid image file."
-      );
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError(
-        "Profile photo must be smaller than 5MB."
-      );
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setForm((previous) => ({
-        ...previous,
-        profile_photo: reader.result,
-      }));
-
-      setError("");
-    };
-
-    reader.onerror = () => {
-      setError(
-        "Unable to read the selected photo."
-      );
-    };
-
-    reader.readAsDataURL(file);
-  };
+  const [
+    paymentInfo,
+    setPaymentInfo,
+  ] = useState(null);
 
 
-  /* =========================================================
-     VALIDATION
-  ========================================================= */
-
-  const validateForm = () => {
-    if (!form.name.trim()) {
-      return "Please enter your full name.";
-    }
-
-    if (!form.email.trim()) {
-      return "Please enter your email address.";
-    }
-
-    if (!form.password) {
-      return "Please enter a password.";
-    }
-
-    if (form.password.length < 6) {
-      return (
-        "Password must contain at least 6 characters."
-      );
-    }
-
-    if (!form.company_name.trim()) {
-      return "Please enter your company name.";
-    }
-
-    if (!selectedPlan.trim()) {
-      return "Please select a plan.";
-    }
-
-    return "";
-  };
+  const [
+    verifyingPayment,
+    setVerifyingPayment,
+  ] = useState(true);
 
 
-  /* =========================================================
-     SUBMIT
-  ========================================================= */
+  const [
+    paymentVerified,
+    setPaymentVerified,
+  ] = useState(false);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
 
-    setError("");
+  const [
+    submitting,
+    setSubmitting,
+  ] = useState(false);
 
-    const validationError =
-      validateForm();
 
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+  const [
+    submitSuccess,
+    setSubmitSuccess,
+  ] = useState(false);
 
-    try {
-      setLoading(true);
 
-      const response = await fetch(
-        `${API_BASE}/api/auth/partner-signup`,
-        {
-          method: "POST",
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
 
-          body: JSON.stringify({
-            plan_name:
-              selectedPlan.trim(),
+  const [
+    formMessage,
+    setFormMessage,
+  ] = useState("");
 
-            name:
-              form.name.trim(),
 
-            email:
-              form.email
-                .trim()
-                .toLowerCase(),
+  /* =======================================================
+     DERIVED VALUES
+  ======================================================= */
 
-            password:
-              form.password,
+  const initials =
+    useMemo(() => {
+      const name =
+        form.name.trim();
 
-            company_name:
-              form.company_name.trim(),
+      if (!name) {
+        return "P";
+      }
 
-            phone:
-              form.phone.trim() || null,
+      return name
+        .charAt(0)
+        .toUpperCase();
+    }, [form.name]);
 
-            profile_photo:
-              form.profile_photo || null,
-          }),
+
+  /* =======================================================
+     VERIFY PAYMENT BEFORE SHOWING FORM
+  ======================================================= */
+
+  useEffect(() => {
+    let cancelled = false;
+
+
+    const verifyPayment =
+      async () => {
+        try {
+          setVerifyingPayment(
+            true
+          );
+
+          setError("");
+
+          /*
+           * No plan or no payment token:
+           * user is not allowed to access
+           * the account creation page.
+           */
+          if (
+            !plan ||
+            !paymentToken
+          ) {
+            navigate(
+              `/payment?plan=${encodeURIComponent(
+                plan || "solo"
+              )}`,
+              {
+                replace: true,
+              }
+            );
+
+            return;
+          }
+
+
+          const response =
+            await fetch(
+              `${API_BASE}/api/payment/verify-token/${encodeURIComponent(
+                paymentToken
+              )}`,
+              {
+                method: "GET",
+
+                headers: {
+                  Accept:
+                    "application/json",
+                },
+              }
+            );
+
+
+          const data =
+            await response.json();
+
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+
+          if (
+            !response.ok
+          ) {
+            throw new Error(
+              data.message ||
+                "Unable to verify payment."
+            );
+          }
+
+
+          /*
+           * Payment must be PAID.
+           */
+          if (
+            !data.paid
+          ) {
+            navigate(
+              `/payment?plan=${encodeURIComponent(
+                plan
+              )}`,
+              {
+                replace: true,
+              }
+            );
+
+            return;
+          }
+
+
+          /*
+           * Token is single-use.
+           */
+          if (
+            data.used
+          ) {
+            throw new Error(
+              "This payment has already been used for an application."
+            );
+          }
+
+
+          /*
+           * Make sure the payment's
+           * plan matches the URL plan.
+           */
+          const paymentPlan =
+            String(
+              data.payment?.plan ||
+                ""
+            )
+              .trim()
+              .toLowerCase();
+
+
+          if (
+            paymentPlan &&
+            paymentPlan !== plan
+          ) {
+            throw new Error(
+              "The selected plan does not match the verified payment."
+            );
+          }
+
+
+          setPaymentInfo(
+            data.payment || null
+          );
+
+          setPaymentVerified(
+            true
+          );
+
+        } catch (err) {
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          console.error(
+            "VERIFY PAYMENT ERROR:",
+            err
+          );
+
+          setPaymentVerified(
+            false
+          );
+
+          setError(
+            err.message ||
+              "Unable to verify payment."
+          );
+
+        } finally {
+          if (
+            !cancelled
+          ) {
+            setVerifyingPayment(
+              false
+            );
+          }
         }
+      };
+
+
+    verifyPayment();
+
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    navigate,
+    paymentToken,
+    plan,
+  ]);
+
+
+  /* =======================================================
+     FORM CHANGE
+  ======================================================= */
+
+  const handleChange =
+    (event) => {
+      const {
+        name,
+        value,
+      } = event.target;
+
+
+      setForm(
+        (previous) => ({
+          ...previous,
+          [name]: value,
+        })
       );
 
-      /*
-       * Protect against HTML/non-JSON responses.
-       */
-      const contentType =
-        response.headers.get(
-          "content-type"
-        ) || "";
-
-      let data = null;
 
       if (
-        contentType.includes(
-          "application/json"
+        error
+      ) {
+        setError("");
+      }
+
+      if (
+        formMessage
+      ) {
+        setFormMessage("");
+      }
+    };
+
+
+  /* =======================================================
+     PHOTO SELECT
+  ======================================================= */
+
+  const handlePhotoChange =
+    (event) => {
+      const file =
+        event.target
+          .files?.[0];
+
+
+      if (!file) {
+        return;
+      }
+
+
+      /*
+       * Allow only images.
+       */
+      if (
+        !file.type.startsWith(
+          "image/"
         )
       ) {
-        data = await response.json();
-      } else {
-        const text =
+        setError(
+          "Please select a JPG, PNG or WEBP image."
+        );
+
+        event.target.value =
+          "";
+
+        return;
+      }
+
+
+      /*
+       * Maximum 5 MB.
+       */
+      if (
+        file.size >
+        5 * 1024 * 1024
+      ) {
+        setError(
+          "Profile photo must be 5 MB or smaller."
+        );
+
+        event.target.value =
+          "";
+
+        return;
+      }
+
+
+      setError("");
+
+      setProfileFile(
+        file
+      );
+
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        () => {
+          setProfilePhoto(
+            String(
+              reader.result ||
+                ""
+            )
+          );
+        };
+
+
+      reader.onerror =
+        () => {
+          setError(
+            "Failed to read profile photo."
+          );
+        };
+
+
+      reader.readAsDataURL(
+        file
+      );
+    };
+
+
+  /* =======================================================
+     REMOVE PHOTO
+  ======================================================= */
+
+  const handleRemovePhoto =
+    () => {
+      setProfilePhoto("");
+
+      setProfileFile(
+        null
+      );
+
+
+      if (
+        fileInputRef.current
+      ) {
+        fileInputRef.current.value =
+          "";
+      }
+    };
+
+
+  /* =======================================================
+     VALIDATION
+  ======================================================= */
+
+  const validateForm =
+    () => {
+      const name =
+        form.name.trim();
+
+      const email =
+        form.email
+          .trim()
+          .toLowerCase();
+
+      const company =
+        form.company_name.trim();
+
+      const phone =
+        form.phone.trim();
+
+      const password =
+        form.password;
+
+
+      if (!name) {
+        return "Full name is required.";
+      }
+
+
+      if (
+        name.length >
+        150
+      ) {
+        return "Full name must be 150 characters or less.";
+      }
+
+
+      if (!email) {
+        return "Email address is required.";
+      }
+
+
+      /*
+       * Basic email validation.
+       */
+      const emailPattern =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+      if (
+        !emailPattern.test(
+          email
+        )
+      ) {
+        return "Please enter a valid email address.";
+      }
+
+
+      if (!company) {
+        return "Company name is required.";
+      }
+
+
+      if (
+        company.length >
+        255
+      ) {
+        return "Company name must be 255 characters or less.";
+      }
+
+
+      if (
+        phone.length >
+        30
+      ) {
+        return "Phone number must be 30 characters or less.";
+      }
+
+
+      if (!password) {
+        return "Password is required.";
+      }
+
+
+      if (
+        password.length <
+        6
+      ) {
+        return "Password must contain at least 6 characters.";
+      }
+
+
+      /*
+       * Extra protection:
+       * signup is impossible without
+       * verified payment.
+       */
+      if (
+        !paymentVerified ||
+        !paymentToken
+      ) {
+        return "A verified payment is required before creating an account.";
+      }
+
+
+      return "";
+    };
+
+
+  /* =======================================================
+     SUBMIT
+  ======================================================= */
+
+  const handleSubmit =
+    async (event) => {
+      event.preventDefault();
+
+
+      setError("");
+
+      setFormMessage("");
+
+
+      const validationError =
+        validateForm();
+
+
+      if (
+        validationError
+      ) {
+        setError(
+          validationError
+        );
+
+        return;
+      }
+
+
+      try {
+        setSubmitting(
+          true
+        );
+
+
+        const response =
+          await fetch(
+            `${API_BASE}/api/auth/partner-signup`,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                Accept:
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  payment_token:
+                    paymentToken,
+
+                  name:
+                    form.name.trim(),
+
+                  email:
+                    form.email
+                      .trim()
+                      .toLowerCase(),
+
+                  password:
+                    form.password,
+
+                  company_name:
+                    form.company_name.trim(),
+
+                  phone:
+                    form.phone.trim() ||
+                    null,
+
+                  profile_photo:
+                    profilePhoto ||
+                    null,
+                }),
+            }
+          );
+
+
+        /*
+         * Some server failures can return
+         * HTML instead of JSON.
+         *
+         * Read text first so the UI doesn't
+         * throw "Unexpected token <".
+         */
+        const responseText =
           await response.text();
 
-        throw new Error(
-          text ||
-            "Server returned an invalid response."
-        );
-      }
 
-      if (!response.ok) {
-        throw new Error(
+        let data = null;
+
+
+        try {
+          data =
+            responseText
+              ? JSON.parse(
+                  responseText
+                )
+              : null;
+        } catch {
+          data = null;
+        }
+
+
+        if (
+          !response.ok
+        ) {
+          throw new Error(
+            data?.message ||
+              `Failed to submit partner application. (${response.status})`
+          );
+        }
+
+
+        /*
+         * Success.
+         */
+        setSubmitSuccess(
+          true
+        );
+
+        setFormMessage(
           data?.message ||
+            "Your partner application has been submitted successfully."
+        );
+
+
+        /*
+         * Clear password after submit.
+         */
+        setForm(
+          (previous) => ({
+            ...previous,
+            password: "",
+          })
+        );
+
+      } catch (err) {
+        console.error(
+          "PARTNER SIGNUP ERROR:",
+          err
+        );
+
+        setError(
+          err.message ||
             "Failed to submit partner application."
         );
+
+      } finally {
+        setSubmitting(
+          false
+        );
       }
-
-      setSubmitted(true);
-
-    } catch (err) {
-      console.error(
-        "PARTNER SIGNUP ERROR:",
-        err
-      );
-
-      setError(
-        err.message ||
-          "Unable to submit your application."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
 
-  /* =========================================================
-     SUCCESS SCREEN
-  ========================================================= */
+  /* =======================================================
+     LOADING
+  ======================================================= */
 
-  if (submitted) {
+  if (
+    verifyingPayment
+  ) {
     return (
-      <div className="create-account-page">
+      <div className="partner-create-page">
 
-        <div className="create-account-card success-card">
+        <div className="partner-create-loading-card">
 
-          <div className="success-icon">
+          <div className="partner-create-loading-icon">
+            <span />
+          </div>
+
+          <h2>
+            Verifying your payment
+          </h2>
+
+          <p>
+            Please wait while we verify your
+            Razorpay payment.
+          </p>
+
+        </div>
+
+      </div>
+    );
+  }
+
+
+  /* =======================================================
+     PAYMENT ERROR
+  ======================================================= */
+
+  if (
+    !paymentVerified
+  ) {
+    return (
+      <div className="partner-create-page">
+
+        <div className="partner-create-error-card">
+
+          <div className="partner-create-error-icon">
+            !
+          </div>
+
+          <h2>
+            Account creation unavailable
+          </h2>
+
+          <p>
+            {error ||
+              "A verified payment is required before creating your partner account."}
+          </p>
+
+          <button
+            type="button"
+            className="partner-primary-button"
+            onClick={() =>
+              navigate(
+                `/payment?plan=${encodeURIComponent(
+                  plan || "solo"
+                )}`
+              )
+            }
+          >
+            Go to Payment
+          </button>
+
+        </div>
+
+      </div>
+    );
+  }
+
+
+  /* =======================================================
+     SUCCESS
+  ======================================================= */
+
+  if (
+    submitSuccess
+  ) {
+    return (
+      <div className="partner-create-page">
+
+        <div className="partner-create-success-card">
+
+          <div className="partner-success-icon">
             ✓
           </div>
 
-          <span className="create-account-eyebrow">
-            APPLICATION SUBMITTED
-          </span>
+          <div className="partner-success-plan">
+            {planLabel} PLAN
+          </div>
 
           <h1>
-            Your account is under review
+            Application submitted
           </h1>
 
           <p>
-            Your{" "}
-            <strong>
-              {selectedPlan}
-            </strong>{" "}
-            partner application has been
-            successfully submitted.
+            Your payment has been verified and
+            your partner account application has
+            been sent to the Zaploft admin team.
           </p>
 
-          <div className="approval-notice">
+          <div className="partner-success-note">
 
             <strong>
-              Approval time: up to 24 hours
+              What happens next?
             </strong>
 
             <span>
-              Our admin team will review
-              your details before activating
-              your Partner account.
+              The admin will review your company
+              and profile details. Once approved,
+              your partner account will be created
+              and you can log in using your email
+              and password.
             </span>
 
           </div>
 
-          <div className="success-email-note">
-            <strong>
-              Login email
-            </strong>
+          <div className="partner-success-email">
 
             <span>
-              {form.email}
+              Login email
             </span>
 
-            <small>
-              Please use this email and your
-              password after approval.
-            </small>
+            <strong>
+              {form.email}
+            </strong>
+
           </div>
 
           <button
             type="button"
-            className="create-account-login-button"
+            className="partner-primary-button"
             onClick={() =>
-              navigate("/login")
+              navigate(
+                "/login"
+              )
             }
           >
             Go to Login
@@ -327,221 +983,141 @@ function PartnerCreateAccount() {
   }
 
 
-  /* =========================================================
-     CREATE ACCOUNT
-  ========================================================= */
+  /* =======================================================
+     MAIN PAGE
+  ======================================================= */
 
   return (
-    <div className="create-account-page">
+    <div className="partner-create-page">
 
-      <div className="create-account-card">
-
-        {/* ===================================================
-            BRAND
-        =================================================== */}
-
-        <div className="create-account-brand">
-
-          <div className="create-account-brand-mark">
-            Z
-          </div>
-
-          <div>
-
-            <strong>
-              Zaploft
-            </strong>
-
-            <span>
-              MESSAGE AUTOMATION
-            </span>
-
-          </div>
-
-        </div>
-
+      <div className="partner-create-container">
 
         {/* ===================================================
-            HEADING
+            HEADER
         =================================================== */}
 
-        <div className="create-account-heading">
+        <header className="partner-create-header">
 
-          <span className="create-account-eyebrow">
-            CREATE PARTNER ACCOUNT
+          <div className="partner-create-brand">
+
+            <div className="partner-create-brand-mark">
+              Z
+            </div>
+
+            <div>
+              <strong>
+                Zaploft
+              </strong>
+
+              <span>
+                MESSAGE AUTOMATION
+              </span>
+            </div>
+
+          </div>
+
+
+          <button
+            type="button"
+            className="partner-header-back"
+            onClick={() =>
+              navigate(
+                "/"
+              )
+            }
+          >
+            ← Back to Zaploft
+          </button>
+
+        </header>
+
+
+        {/* ===================================================
+            TITLE
+        =================================================== */}
+
+        <section className="partner-create-intro">
+
+          <span className="partner-create-eyebrow">
+            PARTNER REGISTRATION
           </span>
 
           <h1>
-            Start your workspace
+            Create your partner account
           </h1>
 
           <p>
-            Complete your details to submit
-            your partner application.
+            Your payment has been verified.
+            Complete your profile below to submit
+            your application for admin approval.
           </p>
 
-        </div>
+        </section>
 
 
         {/* ===================================================
-            SELECTED PLAN
+            PAYMENT SUMMARY
         =================================================== */}
 
-        <div className="selected-plan">
+        <section className="partner-payment-confirmed">
 
-          <div>
+          <div className="partner-payment-check">
+            ✓
+          </div>
 
-            <span>
-              SELECTED PLAN
-            </span>
+          <div className="partner-payment-copy">
 
             <strong>
-              {selectedPlan}
+              Payment verified
             </strong>
 
+            <span>
+              {planLabel} Plan
+              {paymentInfo?.amount
+                ? ` · ${formatAmount(
+                    paymentInfo.amount,
+                    paymentInfo.currency
+                  )}`
+                : ""}
+            </span>
+
           </div>
 
-          <small>
-            24h approval
-          </small>
+          <span className="partner-payment-status">
+            PAID
+          </span>
 
-        </div>
+        </section>
 
 
         {/* ===================================================
-            ERROR
-        =================================================== */}
-
-        {error && (
-          <div className="create-account-error">
-            <span>!</span>
-            {error}
-          </div>
-        )}
-
-
-        {/* ===================================================
-            FORM
+            FORM CARD
         =================================================== */}
 
         <form
-          className="create-account-form"
-          onSubmit={handleSubmit}
+          className="partner-create-card"
+          onSubmit={
+            handleSubmit
+          }
         >
 
-          <div className="form-grid">
+          <div className="partner-create-card-header">
 
-            {/* NAME */}
+            <div>
 
-            <div className="create-field">
+              <h2>
+                Partner Profile
+              </h2>
 
-              <label htmlFor="partner-name">
-                Full Name
-              </label>
-
-              <input
-                id="partner-name"
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Enter your full name"
-                autoComplete="name"
-                disabled={loading}
-              />
+              <p>
+                Enter the details you want to
+                submit for approval.
+              </p>
 
             </div>
 
-
-            {/* EMAIL */}
-
-            <div className="create-field">
-
-              <label htmlFor="partner-email">
-                Email Address
-              </label>
-
-              <input
-                id="partner-email"
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="you@example.com"
-                autoComplete="email"
-                disabled={loading}
-              />
-
-            </div>
-
-
-            {/* PASSWORD */}
-
-            <div className="create-field">
-
-              <label htmlFor="partner-password">
-                Password
-              </label>
-
-              <input
-                id="partner-password"
-                type="password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Minimum 6 characters"
-                autoComplete="new-password"
-                disabled={loading}
-              />
-
-              <small>
-                Minimum 6 characters.
-              </small>
-
-            </div>
-
-
-            {/* COMPANY */}
-
-            <div className="create-field">
-
-              <label htmlFor="partner-company">
-                Company Name
-              </label>
-
-              <input
-                id="partner-company"
-                type="text"
-                name="company_name"
-                value={form.company_name}
-                onChange={handleChange}
-                placeholder="Enter your business name"
-                autoComplete="organization"
-                disabled={loading}
-              />
-
-            </div>
-
-
-            {/* PHONE */}
-
-            <div className="create-field full-width">
-
-              <label htmlFor="partner-phone">
-                Phone Number
-              </label>
-
-              <input
-                id="partner-phone"
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                placeholder="Enter your phone number"
-                autoComplete="tel"
-                disabled={loading}
-              />
-
+            <div className="partner-create-plan-badge">
+              {planLabel}
             </div>
 
           </div>
@@ -551,55 +1127,236 @@ function PartnerCreateAccount() {
               PROFILE PHOTO
           ================================================= */}
 
-          <div className="signup-photo-section">
+          <section className="partner-photo-section">
 
-            <div className="signup-photo-preview">
+            <div className="partner-photo-preview">
 
-              {form.profile_photo ? (
+              {profilePhoto ? (
                 <img
-                  src={form.profile_photo}
+                  src={
+                    profilePhoto
+                  }
                   alt="Profile preview"
                 />
               ) : (
                 <span>
-                  {
-                    (
-                      form.name ||
-                      "P"
-                    )
-                      .charAt(0)
-                      .toUpperCase()
-                  }
+                  {initials}
                 </span>
               )}
 
             </div>
 
-            <div className="signup-photo-content">
+
+            <div className="partner-photo-details">
 
               <strong>
                 Profile Photo
               </strong>
 
-              <span>
-                Optional. JPG, PNG or WEBP.
-                Maximum 5MB.
-              </span>
+              <p>
+                JPG, PNG or WEBP.
+                Maximum size 5MB.
+              </p>
 
-              <label className="signup-photo-button">
 
-                Choose Photo
+              <div className="partner-photo-actions">
+
+                <button
+                  type="button"
+                  className="partner-secondary-button"
+                  onClick={() =>
+                    fileInputRef.current?.click()
+                  }
+                >
+                  {profilePhoto
+                    ? "Change Photo"
+                    : "Upload Photo"}
+                </button>
+
+
+                {profilePhoto && (
+                  <button
+                    type="button"
+                    className="partner-remove-photo"
+                    onClick={
+                      handleRemovePhoto
+                    }
+                  >
+                    Remove
+                  </button>
+                )}
+
+              </div>
+
+
+              <input
+                ref={
+                  fileInputRef
+                }
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={
+                  handlePhotoChange
+                }
+                hidden
+              />
+
+            </div>
+
+          </section>
+
+
+          {/* =================================================
+              FORM GRID
+          ================================================= */}
+
+          <div className="partner-create-form-grid">
+
+            {/* NAME */}
+
+            <div className="partner-create-field">
+
+              <label htmlFor="partner-name">
+                Full Name
+              </label>
+
+              <input
+                id="partner-name"
+                name="name"
+                type="text"
+                placeholder="Enter your full name"
+                value={
+                  form.name
+                }
+                onChange={
+                  handleChange
+                }
+                maxLength={150}
+                autoComplete="name"
+              />
+
+            </div>
+
+
+            {/* EMAIL */}
+
+            <div className="partner-create-field">
+
+              <label htmlFor="partner-email">
+                Email Address
+              </label>
+
+              <div className="partner-email-wrapper">
 
                 <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={
-                    handlePhotoChange
+                  id="partner-email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={
+                    form.email
                   }
-                  disabled={loading}
+                  onChange={
+                    handleChange
+                  }
+                  autoComplete="email"
                 />
 
+                <span className="partner-email-lock">
+                  🔒
+                </span>
+
+              </div>
+
+              <small>
+                This email will be used for your
+                partner login.
+              </small>
+
+            </div>
+
+
+            {/* COMPANY */}
+
+            <div className="partner-create-field">
+
+              <label htmlFor="partner-company">
+                Company Name
               </label>
+
+              <input
+                id="partner-company"
+                name="company_name"
+                type="text"
+                placeholder="Enter your company name"
+                value={
+                  form.company_name
+                }
+                onChange={
+                  handleChange
+                }
+                maxLength={255}
+                autoComplete="organization"
+              />
+
+            </div>
+
+
+            {/* PHONE */}
+
+            <div className="partner-create-field">
+
+              <label htmlFor="partner-phone">
+                Phone Number
+                <span>
+                  Optional
+                </span>
+              </label>
+
+              <input
+                id="partner-phone"
+                name="phone"
+                type="tel"
+                placeholder="Enter your phone number"
+                value={
+                  form.phone
+                }
+                onChange={
+                  handleChange
+                }
+                maxLength={30}
+                autoComplete="tel"
+              />
+
+            </div>
+
+
+            {/* PASSWORD */}
+
+            <div className="partner-create-field partner-create-field-full">
+
+              <label htmlFor="partner-password">
+                Password
+              </label>
+
+              <input
+                id="partner-password"
+                name="password"
+                type="password"
+                placeholder="Create a password"
+                value={
+                  form.password
+                }
+                onChange={
+                  handleChange
+                }
+                minLength={6}
+                autoComplete="new-password"
+              />
+
+              <small>
+                Minimum 6 characters.
+              </small>
 
             </div>
 
@@ -607,13 +1364,13 @@ function PartnerCreateAccount() {
 
 
           {/* =================================================
-              APPROVAL NOTICE
+              IMPORTANT INFORMATION
           ================================================= */}
 
-          <div className="approval-copy">
+          <div className="partner-create-info">
 
-            <div className="approval-copy-icon">
-              ⏱
+            <div className="partner-create-info-icon">
+              !
             </div>
 
             <div>
@@ -622,12 +1379,12 @@ function PartnerCreateAccount() {
                 Admin approval required
               </strong>
 
-              <span>
-                Your application will be reviewed
-                within 24 hours. Your Partner
-                Dashboard becomes available only
-                after approval.
-              </span>
+              <p>
+                After you submit this form, your
+                account will remain pending until a
+                Zaploft administrator reviews and
+                approves your details.
+              </p>
 
             </div>
 
@@ -635,18 +1392,93 @@ function PartnerCreateAccount() {
 
 
           {/* =================================================
-              SUBMIT
+              ERROR
           ================================================= */}
 
-          <button
-            type="submit"
-            className="create-account-submit"
-            disabled={loading}
-          >
-            {loading
-              ? "Submitting application..."
-              : "Create Partner Account"}
-          </button>
+          {error && (
+            <div className="partner-create-alert error">
+
+              <span>
+                !
+              </span>
+
+              <div>
+                {error}
+              </div>
+
+            </div>
+          )}
+
+
+          {/* =================================================
+              MESSAGE
+          ================================================= */}
+
+          {formMessage && (
+            <div className="partner-create-alert success">
+
+              <span>
+                ✓
+              </span>
+
+              <div>
+                {formMessage}
+              </div>
+
+            </div>
+          )}
+
+
+          {/* =================================================
+              ACTIONS
+          ================================================= */}
+
+          <div className="partner-create-actions">
+
+            <button
+              type="button"
+              className="partner-cancel-button"
+              onClick={() =>
+                navigate(
+                  "/"
+                )
+              }
+              disabled={
+                submitting
+              }
+            >
+              Cancel
+            </button>
+
+
+            <button
+              type="submit"
+              className="partner-primary-button"
+              disabled={
+                submitting ||
+                !paymentVerified
+              }
+            >
+              {submitting
+                ? "Submitting..."
+                : "Submit for Approval"}
+            </button>
+
+          </div>
+
+
+          <div className="partner-create-footer-note">
+
+            <span>
+              🔒
+            </span>
+
+            <span>
+              Your information is securely stored
+              and reviewed by Zaploft.
+            </span>
+
+          </div>
 
         </form>
 
@@ -655,27 +1487,23 @@ function PartnerCreateAccount() {
             FOOTER
         =================================================== */}
 
-        <div className="create-account-footer">
+        <footer className="partner-create-footer">
 
           <span>
-            Already have an approved account?
+            © {new Date().getFullYear()} Zaploft
           </span>
 
-          <button
-            type="button"
-            onClick={() =>
-              navigate("/login")
-            }
-          >
-            Sign in
-          </button>
+          <span>
+            Message Automation Platform
+          </span>
 
-        </div>
+        </footer>
 
       </div>
 
     </div>
   );
 }
+
 
 export default PartnerCreateAccount;
