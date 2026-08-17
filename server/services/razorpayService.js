@@ -1,10 +1,12 @@
 import Razorpay from "razorpay";
 
+
 const keyId =
   process.env.RAZORPAY_KEY_ID;
 
 const keySecret =
   process.env.RAZORPAY_KEY_SECRET;
+
 
 if (!keyId || !keySecret) {
   console.warn(
@@ -12,10 +14,12 @@ if (!keyId || !keySecret) {
   );
 }
 
-const razorpay = new Razorpay({
-  key_id: keyId,
-  key_secret: keySecret,
-});
+
+const razorpay =
+  new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
 
 
 const PLAN_CONFIG = {
@@ -27,14 +31,17 @@ const PLAN_CONFIG = {
       "Solo",
 
     planId:
-      process.env.RAZORPAY_PLAN_SOLO || "",
+      process.env.RAZORPAY_PLAN_SOLO ||
+      "",
 
     amount: Number(
-      process.env.RAZORPAY_PLAN_SOLO_AMOUNT || 0
+      process.env.RAZORPAY_PLAN_SOLO_AMOUNT ||
+      0
     ),
 
     currency: "INR",
   },
+
 
   pro: {
     key: "pro",
@@ -44,14 +51,17 @@ const PLAN_CONFIG = {
       "Pro",
 
     planId:
-      process.env.RAZORPAY_PLAN_PRO || "",
+      process.env.RAZORPAY_PLAN_PRO ||
+      "",
 
     amount: Number(
-      process.env.RAZORPAY_PLAN_PRO_AMOUNT || 0
+      process.env.RAZORPAY_PLAN_PRO_AMOUNT ||
+      0
     ),
 
     currency: "INR",
   },
+
 
   business: {
     key: "business",
@@ -61,10 +71,12 @@ const PLAN_CONFIG = {
       "Business",
 
     planId:
-      process.env.RAZORPAY_PLAN_BUSINESS || "",
+      process.env.RAZORPAY_PLAN_BUSINESS ||
+      "",
 
     amount: Number(
-      process.env.RAZORPAY_PLAN_BUSINESS_AMOUNT || 0
+      process.env.RAZORPAY_PLAN_BUSINESS_AMOUNT ||
+      0
     ),
 
     currency: "INR",
@@ -72,26 +84,51 @@ const PLAN_CONFIG = {
 };
 
 
-export function getPlan(planKey) {
-  const key = String(planKey || "")
-    .trim()
-    .toLowerCase();
+/* =========================================================
+   GET ONE PLAN
+========================================================= */
 
-  return PLAN_CONFIG[key] || null;
+export function getPlan(
+  planKey
+) {
+  const key =
+    String(
+      planKey || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  return (
+    PLAN_CONFIG[key] ||
+    null
+  );
 }
 
+
+/* =========================================================
+   GET ALL PLANS
+========================================================= */
 
 export function getAllPlans() {
-  return Object.values(PLAN_CONFIG);
+  return Object.values(
+    PLAN_CONFIG
+  );
 }
 
 
-export async function createSubscription(plan) {
+/* =========================================================
+   CREATE RAZORPAY SUBSCRIPTION
+========================================================= */
+
+export async function createSubscription(
+  plan
+) {
   if (!plan) {
     throw new Error(
       "Invalid Razorpay plan."
     );
   }
+
 
   if (!plan.planId) {
     throw new Error(
@@ -99,22 +136,32 @@ export async function createSubscription(plan) {
     );
   }
 
-  const totalCount = Number(
-    process.env.RAZORPAY_TOTAL_COUNT || 200
-  );
+
+  const totalCount =
+    Number(
+      process.env.RAZORPAY_TOTAL_COUNT ||
+      200
+    );
+
 
   return razorpay.subscriptions.create({
-    plan_id: plan.planId,
+    plan_id:
+      plan.planId,
 
-    total_count: totalCount,
+    total_count:
+      totalCount,
 
     quantity: 1,
 
-    customer_notify: true,
+    customer_notify:
+      true,
 
     notes: {
-      plan_key: plan.key,
-      plan_name: plan.name,
+      plan_key:
+        plan.key,
+
+      plan_name:
+        plan.name,
     },
   });
 }

@@ -66,6 +66,7 @@ app.use(
         return;
       }
 
+
       callback(
         new Error(
           "Not allowed by CORS"
@@ -78,7 +79,8 @@ app.use(
 
 /* =========================================================
    RAZORPAY WEBHOOK
-   MUST BE BEFORE express.json()
+
+   MUST COME BEFORE express.json()
 ========================================================= */
 
 app.post(
@@ -102,9 +104,7 @@ app.use(
 
 
 /* =========================================================
-   PAYMENT API
-
-   /api/payment/...
+   PAYMENT
 ========================================================= */
 
 app.use(
@@ -140,8 +140,10 @@ app.get(
         "./services/whatsappService.js"
       );
 
+
       const data =
         await getTemplates();
+
 
       return res.json({
         success: true,
@@ -156,10 +158,12 @@ app.get(
         error
       );
 
+
       return res.status(
         error.statusCode || 500
       ).json({
         success: false,
+
         message:
           error.message ||
           "Failed to load templates.",
@@ -230,7 +234,7 @@ app.get(
 
 
 /* =========================================================
-   ERROR HANDLER
+   GLOBAL ERROR
 ========================================================= */
 
 app.use(
@@ -244,6 +248,7 @@ app.use(
       "GLOBAL ERROR:",
       error
     );
+
 
     return res.status(
       error.status || 500
@@ -259,11 +264,12 @@ app.use(
 
 
 /* =========================================================
-   START SERVER
+   START
 ========================================================= */
 
 const PORT =
-  process.env.PORT || 5000;
+  process.env.PORT ||
+  5000;
 
 
 app.listen(
@@ -279,19 +285,19 @@ app.listen(
     );
 
     console.log(
-      `Payment API:`
+      "Payment API:"
     );
 
     console.log(
-      `http://localhost:${PORT}/api/payment`
+      `https://api.zaploft.in/api/payment`
     );
 
     console.log(
-      `Razorpay Webhook:`
+      "Razorpay Webhook:"
     );
 
     console.log(
-      `http://localhost:${PORT}/api/payment/webhook`
+      `https://api.zaploft.in/api/payment/webhook`
     );
 
     console.log(

@@ -10,31 +10,47 @@ import {
 } from "../services/razorpayService.js";
 
 
-const router = express.Router();
+const router =
+  express.Router();
 
 
 /* =========================================================
-   GET PAYMENT PLANS
+   GET PLANS
 
    GET /api/payment/plans
 ========================================================= */
 
 router.get(
   "/plans",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const plans =
         getAllPlans()
           .filter(
             (plan) =>
-              Boolean(plan.planId)
+              Boolean(
+                plan.planId
+              )
           )
-          .map((plan) => ({
-            key: plan.key,
-            name: plan.name,
-            amount: plan.amount,
-            currency: plan.currency,
-          }));
+          .map(
+            (plan) => ({
+              key:
+                plan.key,
+
+              name:
+                plan.name,
+
+              amount:
+                plan.amount,
+
+              currency:
+                plan.currency,
+            })
+          );
+
 
       return res.json({
         success: true,
@@ -51,8 +67,12 @@ router.get(
         error
       );
 
-      return res.status(500).json({
+
+      return res.status(
+        500
+      ).json({
         success: false,
+
         message:
           "Failed to load payment plans.",
       });
@@ -62,18 +82,22 @@ router.get(
 
 
 /* =========================================================
-   CREATE RAZORPAY SUBSCRIPTION
+   CREATE PAYMENT SESSION
 
    POST /api/payment/create
 ========================================================= */
 
 router.post(
   "/create",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const {
         plan,
-      } = req.body;
+      } =
+        req.body;
 
 
       const selectedPlan =
@@ -81,17 +105,25 @@ router.post(
 
 
       if (!selectedPlan) {
-        return res.status(400).json({
+        return res.status(
+          400
+        ).json({
           success: false,
+
           message:
             "Invalid plan selected.",
         });
       }
 
 
-      if (!selectedPlan.planId) {
-        return res.status(500).json({
+      if (
+        !selectedPlan.planId
+      ) {
+        return res.status(
+          500
+        ).json({
           success: false,
+
           message:
             `${selectedPlan.name} plan is not configured.`,
         });
@@ -150,11 +182,17 @@ router.post(
           `,
           [
             paymentToken,
+
             selectedPlan.key,
+
             selectedPlan.name,
+
             selectedPlan.planId,
+
             subscription.id,
+
             selectedPlan.amount,
+
             selectedPlan.currency,
           ]
         );
@@ -164,7 +202,9 @@ router.post(
         result.rows[0];
 
 
-      return res.status(201).json({
+      return res.status(
+        201
+      ).json({
         success: true,
 
         paymentToken:
@@ -197,8 +237,12 @@ router.post(
         error
       );
 
-      return res.status(500).json({
+
+      return res.status(
+        500
+      ).json({
         success: false,
+
         message:
           error.message ||
           "Failed to create payment.",
@@ -209,21 +253,25 @@ router.post(
 
 
 /* =========================================================
-   VERIFY RAZORPAY CHECKOUT
+   VERIFY RAZORPAY PAYMENT
 
    POST /api/payment/verify
 ========================================================= */
 
 router.post(
   "/verify",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const {
         payment_token,
         razorpay_payment_id,
         razorpay_subscription_id,
         razorpay_signature,
-      } = req.body;
+      } =
+        req.body;
 
 
       if (
@@ -232,10 +280,13 @@ router.post(
         !razorpay_subscription_id ||
         !razorpay_signature
       ) {
-        return res.status(400).json({
+        return res.status(
+          400
+        ).json({
           success: false,
+
           message:
-            "Incomplete Razorpay response.",
+            "Incomplete Razorpay payment response.",
         });
       }
 
@@ -255,20 +306,25 @@ router.post(
 
           FROM partner_payment_sessions
 
-          WHERE
-            payment_token = $1
+          WHERE payment_token = $1
 
           LIMIT 1
           `,
-          [payment_token]
+          [
+            payment_token,
+          ]
         );
 
 
       if (
-        result.rows.length === 0
+        result.rows.length ===
+        0
       ) {
-        return res.status(404).json({
+        return res.status(
+          404
+        ).json({
           success: false,
+
           message:
             "Payment session not found.",
         });
@@ -282,8 +338,11 @@ router.post(
       if (
         payment.used_at
       ) {
-        return res.status(409).json({
+        return res.status(
+          409
+        ).json({
           success: false,
+
           message:
             "This payment has already been used.",
         });
@@ -294,21 +353,18 @@ router.post(
         payment.razorpay_subscription_id !==
         razorpay_subscription_id
       ) {
-        return res.status(400).json({
+        return res.status(
+          400
+        ).json({
           success: false,
+
           message:
             "Razorpay subscription mismatch.",
         });
       }
 
 
-      /*
-       * Razorpay subscription
-       * signature verification:
-       *
-       * payment_id|subscription_id
-       */
-      const payload =
+      const signaturePayload =
         `${razorpay_payment_id}|${razorpay_subscription_id}`;
 
 
@@ -316,10 +372,15 @@ router.post(
         crypto
           .createHmac(
             "sha256",
-            process.env.RAZORPAY_KEY_SECRET
+            process.env
+              .RAZORPAY_KEY_SECRET
           )
-          .update(payload)
-          .digest("hex");
+          .update(
+            signaturePayload
+          )
+          .digest(
+            "hex"
+          );
 
 
       const receivedBuffer =
@@ -327,6 +388,7 @@ router.post(
           razorpay_signature,
           "utf8"
         );
+
 
       const expectedBuffer =
         Buffer.from(
@@ -339,8 +401,11 @@ router.post(
         receivedBuffer.length !==
         expectedBuffer.length
       ) {
-        return res.status(400).json({
+        return res.status(
+          400
+        ).json({
           success: false,
+
           message:
             "Invalid Razorpay signature.",
         });
@@ -355,8 +420,11 @@ router.post(
 
 
       if (!valid) {
-        return res.status(400).json({
+        return res.status(
+          400
+        ).json({
           success: false,
+
           message:
             "Invalid Razorpay signature.",
         });
@@ -377,12 +445,13 @@ router.post(
           paid_at =
             CURRENT_TIMESTAMP
 
-        WHERE
-          id = $3
+        WHERE id = $3
         `,
         [
           razorpay_payment_id,
+
           razorpay_signature,
+
           payment.id,
         ]
       );
@@ -409,8 +478,12 @@ router.post(
         error
       );
 
-      return res.status(500).json({
+
+      return res.status(
+        500
+      ).json({
         success: false,
+
         message:
           "Failed to verify payment.",
       });
@@ -427,7 +500,10 @@ router.post(
 
 router.get(
   "/verify-token/:token",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const result =
         await pool.query(
@@ -444,21 +520,27 @@ router.get(
 
           FROM partner_payment_sessions
 
-          WHERE
-            payment_token = $1
+          WHERE payment_token = $1
 
           LIMIT 1
           `,
-          [req.params.token]
+          [
+            req.params.token,
+          ]
         );
 
 
       if (
-        result.rows.length === 0
+        result.rows.length ===
+        0
       ) {
-        return res.status(404).json({
+        return res.status(
+          404
+        ).json({
           success: false,
+
           paid: false,
+
           message:
             "Payment session not found.",
         });
@@ -473,7 +555,8 @@ router.get(
         success: true,
 
         paid:
-          payment.status === "PAID",
+          payment.status ===
+          "PAID",
 
         used:
           Boolean(
@@ -501,8 +584,12 @@ router.get(
         error
       );
 
-      return res.status(500).json({
+
+      return res.status(
+        500
+      ).json({
         success: false,
+
         message:
           "Failed to verify payment token.",
       });
@@ -512,7 +599,9 @@ router.get(
 
 
 /* =========================================================
-   RAZORPAY WEBHOOK HANDLER
+   RAZORPAY WEBHOOK
+
+   POST /api/payment/webhook
 ========================================================= */
 
 export async function handleRazorpayWebhook(
@@ -521,7 +610,9 @@ export async function handleRazorpayWebhook(
 ) {
   try {
     const webhookSecret =
-      process.env.RAZORPAY_WEBHOOK_SECRET;
+      process.env
+        .RAZORPAY_WEBHOOK_SECRET;
+
 
     const signature =
       req.headers[
@@ -529,15 +620,16 @@ export async function handleRazorpayWebhook(
       ];
 
 
-    if (
-      !webhookSecret
-    ) {
+    if (!webhookSecret) {
       console.error(
         "RAZORPAY_WEBHOOK_SECRET is not configured."
       );
 
-      return res.status(500).json({
+      return res.status(
+        500
+      ).json({
         success: false,
+
         message:
           "Webhook secret is not configured.",
       });
@@ -545,16 +637,21 @@ export async function handleRazorpayWebhook(
 
 
     if (!signature) {
-      return res.status(400).json({
+      return res.status(
+        400
+      ).json({
         success: false,
+
         message:
-          "Missing Razorpay webhook signature.",
+          "Missing webhook signature.",
       });
     }
 
 
     const rawBody =
-      Buffer.isBuffer(req.body)
+      Buffer.isBuffer(
+        req.body
+      )
         ? req.body
         : Buffer.from(
             JSON.stringify(
@@ -569,8 +666,12 @@ export async function handleRazorpayWebhook(
           "sha256",
           webhookSecret
         )
-        .update(rawBody)
-        .digest("hex");
+        .update(
+          rawBody
+        )
+        .digest(
+          "hex"
+        );
 
 
     const receivedBuffer =
@@ -578,6 +679,7 @@ export async function handleRazorpayWebhook(
         signature,
         "utf8"
       );
+
 
     const expectedBuffer =
       Buffer.from(
@@ -590,8 +692,11 @@ export async function handleRazorpayWebhook(
       receivedBuffer.length !==
       expectedBuffer.length
     ) {
-      return res.status(400).json({
+      return res.status(
+        400
+      ).json({
         success: false,
+
         message:
           "Invalid webhook signature.",
       });
@@ -606,8 +711,11 @@ export async function handleRazorpayWebhook(
 
 
     if (!valid) {
-      return res.status(400).json({
+      return res.status(
+        400
+      ).json({
         success: false,
+
         message:
           "Invalid webhook signature.",
       });
@@ -616,7 +724,9 @@ export async function handleRazorpayWebhook(
 
     const event =
       JSON.parse(
-        rawBody.toString("utf8")
+        rawBody.toString(
+          "utf8"
+        )
       );
 
 
@@ -643,14 +753,6 @@ export async function handleRazorpayWebhook(
     }
 
 
-    /*
-     * Sync successful subscription
-     * state into our database.
-     *
-     * Checkout verification is still
-     * what allows immediate account
-     * creation.
-     */
     if (
       event.event ===
         "subscription.authenticated" ||
@@ -708,12 +810,16 @@ export async function handleRazorpayWebhook(
           razorpay_subscription_id = $1
           AND status <> 'PAID'
         `,
-        [subscriptionId]
+        [
+          subscriptionId,
+        ]
       );
     }
 
 
-    return res.status(200).json({
+    return res.status(
+      200
+    ).json({
       success: true,
     });
 
@@ -723,8 +829,12 @@ export async function handleRazorpayWebhook(
       error
     );
 
-    return res.status(500).json({
+
+    return res.status(
+      500
+    ).json({
       success: false,
+
       message:
         "Webhook processing failed.",
     });
