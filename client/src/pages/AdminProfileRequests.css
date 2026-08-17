@@ -1,0 +1,636 @@
+.admin-profile-requests {
+  min-height: 100%;
+  padding: 32px;
+  background: #f7f7fb;
+  color: #18181b;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.requests-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 25px;
+}
+
+.requests-header > div:first-child > span {
+  color: #7c3aed;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.requests-header h1 {
+  margin: 6px 0 0;
+
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.requests-header p {
+  margin: 7px 0 0;
+
+  color: #71717a;
+  font-size: 13px;
+}
+
+.request-count {
+  min-width: 70px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 12px 16px;
+
+  border: 1px solid #ddd6fe;
+  border-radius: 12px;
+
+  background: #f5f3ff;
+
+  color: #6d28d9;
+
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.request-count small {
+  color: #7c3aed;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+.admin-request-message {
+  margin-bottom: 18px;
+
+  padding: 12px 15px;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-request-message.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-request-message.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.requests-card {
+  background: #ffffff;
+
+  border: 1px solid #e4e4e7;
+  border-radius: 16px;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   ROW
+========================================================= */
+
+.request-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+
+  padding: 18px 20px;
+
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.request-row:last-child {
+  border-bottom: 0;
+}
+
+.request-avatar {
+  width: 48px;
+  height: 48px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      135deg,
+      #7c3aed,
+      #5b21b6
+    );
+
+  color: white;
+
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.request-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.request-main {
+  min-width: 0;
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.request-main strong {
+  font-size: 14px;
+}
+
+.request-main span {
+  margin-top: 3px;
+
+  color: #52525b;
+  font-size: 12px;
+}
+
+.request-main small {
+  margin-top: 4px;
+
+  color: #a1a1aa;
+  font-size: 10px;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.request-status {
+  padding: 6px 9px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.request-status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.request-status.approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.request-status.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+
+/* =========================================================
+   BUTTON
+========================================================= */
+
+.review-button {
+  border: 0;
+  border-radius: 8px;
+
+  padding: 9px 14px;
+
+  background: #7c3aed;
+  color: white;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.review-button:hover {
+  background: #6d28d9;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.empty-requests {
+  min-height: 300px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-requests > div {
+  width: 55px;
+  height: 55px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #dcfce7;
+  color: #16a34a;
+
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.empty-requests strong {
+  margin-top: 13px;
+  font-size: 15px;
+}
+
+.empty-requests span {
+  margin-top: 5px;
+  color: #71717a;
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.request-modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(24, 24, 27, 0.45);
+}
+
+.request-modal {
+  width: min(850px, 100%);
+
+  max-height: 90vh;
+
+  overflow-y: auto;
+
+  border-radius: 18px;
+
+  background: white;
+
+  box-shadow:
+    0 25px 80px
+    rgba(0, 0, 0, 0.2);
+}
+
+
+/* =========================================================
+   MODAL HEADER
+========================================================= */
+
+.request-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  padding: 22px 24px;
+
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.request-modal-header span {
+  color: #7c3aed;
+
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.request-modal-header h2 {
+  margin: 5px 0 0;
+
+  font-size: 18px;
+}
+
+.request-modal-header button {
+  width: 34px;
+  height: 34px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #f4f4f5;
+
+  color: #52525b;
+
+  font-size: 22px;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   COMPARISON
+========================================================= */
+
+.comparison-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 0;
+
+  padding: 22px;
+}
+
+.comparison-column {
+  padding: 18px;
+
+  border: 1px solid #e4e4e7;
+}
+
+.comparison-column:first-child {
+  border-radius: 12px 0 0 12px;
+}
+
+.comparison-column:last-child {
+  border-radius: 0 12px 12px 0;
+}
+
+.comparison-column.requested {
+  background: #faf8ff;
+  border-color: #ddd6fe;
+}
+
+.comparison-column h3 {
+  margin: 0 0 17px;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   INFO
+========================================================= */
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  margin-bottom: 13px;
+}
+
+.info-row span {
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.info-row strong {
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   PHOTO
+========================================================= */
+
+.photo-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  margin-top: 15px;
+}
+
+.photo-preview > span {
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.photo-preview img,
+.no-photo {
+  width: 72px;
+  height: 72px;
+
+  object-fit: cover;
+
+  border-radius: 10px;
+}
+
+.no-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #f4f4f5;
+
+  color: #a1a1aa;
+
+  font-size: 10px;
+}
+
+
+/* =========================================================
+   PASSWORD NOTICE
+========================================================= */
+
+.password-review-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin: 0 22px 20px;
+
+  padding: 12px;
+
+  border-radius: 9px;
+
+  background: #f4f4f5;
+
+  color: #52525b;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   NOTE
+========================================================= */
+
+.review-note {
+  padding: 0 22px 20px;
+}
+
+.review-note label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.review-note textarea {
+  width: 100%;
+  min-height: 80px;
+
+  box-sizing: border-box;
+
+  resize: vertical;
+
+  padding: 11px;
+
+  border: 1px solid #d4d4d8;
+  border-radius: 9px;
+
+  outline: none;
+
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.review-note textarea:focus {
+  border-color: #7c3aed;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+
+  padding: 18px 22px;
+
+  border-top: 1px solid #f0f0f2;
+}
+
+.reject-button,
+.approve-button {
+  height: 40px;
+
+  padding: 0 16px;
+
+  border: 0;
+  border-radius: 8px;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.reject-button {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.approve-button {
+  background: #7c3aed;
+  color: white;
+}
+
+.approve-button:hover {
+  background: #6d28d9;
+}
+
+.reject-button:disabled,
+.approve-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.requests-loading {
+  min-height: 400px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #71717a;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+  .admin-profile-requests {
+    padding: 18px;
+  }
+
+  .requests-header {
+    align-items: flex-start;
+  }
+
+  .request-row {
+    flex-wrap: wrap;
+  }
+
+  .request-status {
+    margin-left: 63px;
+  }
+
+  .review-button {
+    margin-left: auto;
+  }
+
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-column:first-child {
+    border-radius: 12px 12px 0 0;
+  }
+
+  .comparison-column:last-child {
+    border-radius: 0 0 12px 12px;
+  }
+}

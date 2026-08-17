@@ -1,0 +1,929 @@
+    /* =========================================================
+   PAGE
+========================================================= */
+
+.create-account-page {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 32px 20px;
+
+  box-sizing: border-box;
+
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      rgba(124, 58, 237, 0.12),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 90% 90%,
+      rgba(124, 58, 237, 0.08),
+      transparent 30%
+    ),
+    #f7f7fb;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.create-account-card {
+  width: min(
+    700px,
+    100%
+  );
+
+  padding: 34px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #e4e4e7;
+
+  border-radius: 22px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 20px 70px
+      rgba(
+        30,
+        20,
+        50,
+        0.08
+      );
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.create-account-brand {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  margin-bottom: 30px;
+}
+
+.create-account-brand-mark {
+  width: 44px;
+  height: 44px;
+
+  flex: 0 0 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 13px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #9b5cff,
+      #6725d8
+    );
+
+  color: #ffffff;
+
+  font-family: Georgia, serif;
+
+  font-size: 21px;
+  font-weight: 800;
+
+  box-shadow:
+    0 10px 25px
+      rgba(
+        118,
+        52,
+        229,
+        0.25
+      );
+}
+
+.create-account-brand strong {
+  display: block;
+
+  color: #18181b;
+
+  font-family: Georgia, serif;
+
+  font-size: 18px;
+
+  line-height: 1.1;
+}
+
+.create-account-brand span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #8f7ca8;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  letter-spacing: 1.3px;
+}
+
+
+/* =========================================================
+   HEADING
+========================================================= */
+
+.create-account-heading {
+  margin-bottom: 20px;
+}
+
+.create-account-eyebrow {
+  display: block;
+
+  color: #7c3aed;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.13em;
+}
+
+.create-account-heading h1 {
+  margin: 7px 0 0;
+
+  color: #18181b;
+
+  font-size: 29px;
+  line-height: 1.15;
+
+  font-weight: 800;
+
+  letter-spacing: -0.5px;
+}
+
+.create-account-heading p {
+  margin: 9px 0 0;
+
+  color: #71717a;
+
+  font-size: 13px;
+
+  line-height: 1.65;
+}
+
+
+/* =========================================================
+   SELECTED PLAN
+========================================================= */
+
+.selected-plan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  margin-bottom: 20px;
+
+  padding: 14px 16px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #ddd6fe;
+
+  border-radius: 12px;
+
+  background:
+    #faf8ff;
+}
+
+.selected-plan > div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.selected-plan span {
+  color: #7c3aed;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+}
+
+.selected-plan strong {
+  color: #5b21b6;
+
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.selected-plan small {
+  padding: 5px 8px;
+
+  border-radius: 999px;
+
+  background: #ede9fe;
+
+  color: #6d28d9;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.create-account-error {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 18px;
+
+  padding: 12px 14px;
+
+  border-radius: 9px;
+
+  background: #fee2e2;
+
+  color: #991b1b;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.create-account-error span {
+  width: 18px;
+  height: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 18px;
+
+  border-radius: 50%;
+
+  background: rgba(
+    153,
+    27,
+    27,
+    0.12
+  );
+
+  font-weight: 900;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.create-account-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 21px;
+}
+
+.form-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 18px;
+}
+
+.create-field {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.create-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.create-field label {
+  color: #27272a;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.create-field input {
+  width: 100%;
+  height: 44px;
+
+  padding: 0 13px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #d4d4d8;
+
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #18181b;
+
+  font-family: inherit;
+
+  font-size: 13px;
+
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.create-field input::placeholder {
+  color: #a1a1aa;
+}
+
+.create-field input:focus {
+  border-color: #7c3aed;
+
+  box-shadow:
+    0 0 0 3px
+      rgba(
+        124,
+        58,
+        237,
+        0.1
+      );
+}
+
+.create-field input:disabled {
+  background: #f4f4f5;
+
+  cursor: not-allowed;
+}
+
+.create-field small {
+  color: #71717a;
+
+  font-size: 10px;
+}
+
+
+/* =========================================================
+   PROFILE PHOTO
+========================================================= */
+
+.signup-photo-section {
+  display: flex;
+  align-items: center;
+
+  gap: 16px;
+
+  padding: 16px;
+
+  border: 1px solid #e4e4e7;
+
+  border-radius: 13px;
+
+  background: #fafafa;
+}
+
+.signup-photo-preview {
+  width: 68px;
+  height: 68px;
+
+  flex: 0 0 68px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      135deg,
+      #8b42f2,
+      #6724d3
+    );
+
+  color: #ffffff;
+
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.signup-photo-preview img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+}
+
+.signup-photo-content {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: flex-start;
+
+  gap: 5px;
+}
+
+.signup-photo-content strong {
+  color: #27272a;
+
+  font-size: 13px;
+}
+
+.signup-photo-content > span {
+  color: #71717a;
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+.signup-photo-button {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 32px;
+
+  padding: 0 11px;
+
+  box-sizing: border-box;
+
+  border-radius: 8px;
+
+  background: #ede9fe;
+
+  color: #6d28d9;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.signup-photo-button:hover {
+  background: #ddd6fe;
+}
+
+.signup-photo-button input {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  opacity: 0;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   APPROVAL NOTICE
+========================================================= */
+
+.approval-copy {
+  display: flex;
+
+  gap: 12px;
+
+  padding: 14px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #ddd6fe;
+
+  border-radius: 11px;
+
+  background: #f5f3ff;
+}
+
+.approval-copy-icon {
+  width: 36px;
+  height: 36px;
+
+  flex: 0 0 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: #ede9fe;
+
+  font-size: 16px;
+}
+
+.approval-copy strong {
+  display: block;
+
+  color: #5b21b6;
+
+  font-size: 12px;
+}
+
+.approval-copy span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #6d5a8d;
+
+  font-size: 11px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   SUBMIT
+========================================================= */
+
+.create-account-submit {
+  width: 100%;
+  height: 46px;
+
+  border: 0;
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #8b42f2 0%,
+      #6724d3 100%
+    );
+
+  color: #ffffff;
+
+  font-family: inherit;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 10px 24px
+      rgba(
+        104,
+        36,
+        211,
+        0.18
+      );
+
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease;
+}
+
+.create-account-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 14px 28px
+      rgba(
+        104,
+        36,
+        211,
+        0.24
+      );
+}
+
+.create-account-submit:disabled {
+  opacity: 0.65;
+
+  cursor: not-allowed;
+
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.create-account-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  margin-top: 20px;
+
+  color: #71717a;
+
+  font-size: 11px;
+
+  text-align: center;
+}
+
+.create-account-footer button {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #7c3aed;
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.create-account-footer button:hover {
+  color: #5b21b6;
+}
+
+
+/* =========================================================
+   SUCCESS
+========================================================= */
+
+.success-card {
+  text-align: center;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+
+  margin: 0 auto 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #dcfce7;
+
+  color: #16a34a;
+
+  font-size: 27px;
+  font-weight: 900;
+}
+
+.success-card h1 {
+  margin: 8px 0;
+
+  color: #18181b;
+
+  font-size: 28px;
+
+  letter-spacing: -0.4px;
+}
+
+.success-card > p {
+  max-width: 500px;
+
+  margin: 0 auto;
+
+  color: #71717a;
+
+  font-size: 13px;
+
+  line-height: 1.7;
+}
+
+.approval-notice {
+  max-width: 500px;
+
+  margin: 24px auto 12px;
+
+  padding: 17px;
+
+  border: 1px solid #ddd6fe;
+
+  border-radius: 12px;
+
+  background: #faf8ff;
+}
+
+.approval-notice strong {
+  display: block;
+
+  color: #5b21b6;
+
+  font-size: 13px;
+}
+
+.approval-notice span {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #6d5a8d;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+}
+
+.success-email-note {
+  max-width: 500px;
+
+  margin: 12px auto 22px;
+
+  padding: 14px;
+
+  border-radius: 11px;
+
+  background: #f4f4f5;
+
+  text-align: left;
+}
+
+.success-email-note strong,
+.success-email-note span,
+.success-email-note small {
+  display: block;
+}
+
+.success-email-note strong {
+  color: #52525b;
+
+  font-size: 10px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.08em;
+}
+
+.success-email-note span {
+  margin-top: 4px;
+
+  color: #18181b;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.success-email-note small {
+  margin-top: 4px;
+
+  color: #71717a;
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+.create-account-login-button {
+  width: min(
+    240px,
+    100%
+  );
+
+  height: 44px;
+
+  border: 0;
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #8b42f2,
+      #6724d3
+    );
+
+  color: #ffffff;
+
+  font-family: inherit;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.create-account-login-button:hover {
+  background:
+    linear-gradient(
+      135deg,
+      #7c32e7,
+      #5b21b6
+    );
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 650px) {
+
+  .create-account-page {
+    padding: 18px 12px;
+  }
+
+  .create-account-card {
+    padding: 22px 18px;
+
+    border-radius: 17px;
+  }
+
+  .create-account-heading h1 {
+    font-size: 24px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-field.full-width {
+    grid-column: auto;
+  }
+
+  .selected-plan {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .signup-photo-section {
+    align-items: flex-start;
+  }
+
+  .create-account-footer {
+    flex-wrap: wrap;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 380px) {
+
+  .create-account-card {
+    padding: 19px 14px;
+  }
+
+  .create-account-brand {
+    margin-bottom: 23px;
+  }
+
+  .create-account-heading h1 {
+    font-size: 22px;
+  }
+
+  .signup-photo-section {
+    flex-direction: column;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .create-account-submit {
+    transition: none;
+  }
+}

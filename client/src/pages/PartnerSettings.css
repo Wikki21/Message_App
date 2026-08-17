@@ -1,0 +1,448 @@
+.partner-settings-page {
+  min-height: 100%;
+  padding: 32px;
+  background: #f7f7fb;
+  color: #18181b;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.settings-eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: #7c3aed;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.settings-header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.settings-header p {
+  margin: 8px 0 0;
+  color: #71717a;
+  font-size: 14px;
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.settings-loading {
+  display: flex;
+  min-height: 400px;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+}
+
+
+/* =========================================================
+   PENDING
+========================================================= */
+
+.pending-request {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+
+  margin-bottom: 20px;
+  padding: 16px 18px;
+
+  border: 1px solid #ddd6fe;
+  border-radius: 14px;
+
+  background: #f5f3ff;
+}
+
+.pending-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+  background: #ede9fe;
+
+  font-size: 20px;
+}
+
+.pending-request strong {
+  display: block;
+  color: #5b21b6;
+  font-size: 14px;
+}
+
+.pending-request span {
+  display: block;
+  margin-top: 4px;
+  color: #6d5a8d;
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.settings-card {
+  max-width: 950px;
+
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 18px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 8px 30px rgba(24, 24, 27, 0.04);
+}
+
+.settings-card-header {
+  padding: 24px 26px;
+
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.settings-card-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.settings-card-header p {
+  margin: 6px 0 0;
+  color: #71717a;
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   PHOTO
+========================================================= */
+
+.profile-photo-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+
+  padding: 26px;
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.profile-photo {
+  width: 88px;
+  height: 88px;
+
+  flex-shrink: 0;
+
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      135deg,
+      #7c3aed,
+      #5b21b6
+    );
+
+  color: #ffffff;
+
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.profile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-details strong {
+  font-size: 15px;
+}
+
+.photo-details p {
+  margin: 5px 0 12px;
+
+  color: #71717a;
+  font-size: 13px;
+}
+
+.photo-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.photo-upload-button,
+.photo-remove-button {
+  border: 0;
+  border-radius: 8px;
+
+  padding: 8px 13px;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.photo-upload-button {
+  background: #7c3aed;
+  color: #ffffff;
+}
+
+.photo-upload-button:hover {
+  background: #6d28d9;
+}
+
+.photo-remove-button {
+  background: #f4f4f5;
+  color: #52525b;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+
+  padding: 26px;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.settings-field label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-field input {
+  width: 100%;
+  box-sizing: border-box;
+
+  height: 44px;
+
+  padding: 0 13px;
+
+  border: 1px solid #d4d4d8;
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #ffffff;
+  color: #18181b;
+
+  font-size: 13px;
+
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.settings-field input:focus {
+  border-color: #7c3aed;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(124, 58, 237, 0.10);
+}
+
+.settings-field input:disabled {
+  background: #f4f4f5;
+  color: #71717a;
+  cursor: not-allowed;
+}
+
+.settings-field small {
+  color: #71717a;
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   LOCKED EMAIL
+========================================================= */
+
+.locked-input {
+  position: relative;
+}
+
+.locked-input input {
+  padding-right: 42px;
+}
+
+.locked-input span {
+  position: absolute;
+
+  right: 13px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   PASSWORD
+========================================================= */
+
+.password-section {
+  padding: 26px;
+
+  border-top: 1px solid #f0f0f2;
+}
+
+.password-section-header {
+  margin-bottom: 18px;
+}
+
+.password-section-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.password-section-header p {
+  margin: 5px 0 0;
+
+  color: #71717a;
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+.settings-message {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+
+  margin: 0 26px 20px;
+
+  padding: 12px 14px;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-message.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.settings-message.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.settings-message span {
+  font-weight: 900;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  padding: 18px 26px;
+
+  border-top: 1px solid #f0f0f2;
+}
+
+.save-settings-button {
+  min-width: 160px;
+
+  height: 42px;
+
+  border: 0;
+  border-radius: 9px;
+
+  background: #7c3aed;
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.save-settings-button:hover {
+  background: #6d28d9;
+}
+
+.save-settings-button:disabled {
+  background: #c4b5fd;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 700px) {
+  .partner-settings-page {
+    padding: 18px;
+  }
+
+  .settings-form-grid {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .profile-photo-section {
+    padding: 20px;
+  }
+
+  .settings-card-header,
+  .password-section,
+  .settings-actions {
+    padding: 20px;
+  }
+
+  .settings-message {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+
+  .settings-actions {
+    justify-content: stretch;
+  }
+
+  .save-settings-button {
+    width: 100%;
+  }
+}
