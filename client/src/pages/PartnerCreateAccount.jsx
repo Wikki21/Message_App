@@ -16,13 +16,6 @@ const API_BASE =
   import.meta.env.VITE_API_BASE ||
   "http://localhost:5000";
 
-const DEMO_MODE = true;
-
-/* =========================================================
-   DEMO MODE
-
-
-
 
 /* =========================================================
    PLAN LABELS
@@ -40,73 +33,17 @@ const PLAN_LABELS = {
 ========================================================= */
 
 function getPlanLabel(plan) {
+  const normalizedPlan =
+    String(plan || "")
+      .trim()
+      .toLowerCase();
+
   return (
     PLAN_LABELS[
-      String(plan || "")
-        .trim()
-        .toLowerCase()
-    ] ||
-    "Partner"
+      normalizedPlan
+    ] || "Partner"
   );
 }
-
-
-function formatAmount(
-  amount,
-  currency = "INR"
-) {
-  if (
-    amount === undefined ||
-    amount === null ||
-    amount === ""
-  ) {
-    return "";
-  }
-
-  const numericAmount =
-    Number(amount);
-
-  if (
-    Number.isNaN(
-      numericAmount
-    )
-  ) {
-    return "";
-  }
-
-  if (
-    currency === "INR"
-  ) {
-    return numericAmount.toLocaleString(
-      "en-IN",
-      {
-        style: "currency",
-        currency: "INR",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }
-    );
-  }
-
-  return numericAmount.toLocaleString(
-    "en-IN",
-    {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }
-  );
-}
-
-
-/* =========================================================
-   DEMO PLAN AMOUNTS
-========================================================= */
-
-const DEMO_PLAN_AMOUNTS = {
-  solo: 588,
-  pro: 4718.82,
-  business: 1768.82,
-};
 
 
 /* =========================================================
@@ -143,7 +80,7 @@ function PartnerCreateAccount() {
      PLAN
   ======================================================= */
 
-  const plan =
+  const rawPlan =
     (
       searchParams.get(
         "plan"
@@ -153,17 +90,19 @@ function PartnerCreateAccount() {
       .toLowerCase();
 
 
+  const plan =
+    Object.prototype.hasOwnProperty.call(
+      PLAN_LABELS,
+      rawPlan
+    )
+      ? rawPlan
+      : "solo";
+
+
   const planLabel =
     getPlanLabel(
       plan
     );
-
-
-  const demoAmount =
-    DEMO_PLAN_AMOUNTS[
-      plan
-    ] ||
-    0;
 
 
   /* =======================================================
@@ -188,36 +127,6 @@ function PartnerCreateAccount() {
     profileFile,
     setProfileFile,
   ] = useState(null);
-
-
-  /*
-   * In demo mode payment is
-   * automatically treated as verified.
-   */
-  const [
-    paymentInfo,
-    setPaymentInfo,
-  ] = useState(
-    DEMO_MODE
-      ? {
-          plan,
-          planName:
-            planLabel,
-          amount:
-            demoAmount,
-          currency:
-            "INR",
-        }
-      : null
-  );
-
-
-  const [
-    paymentVerified,
-    setPaymentVerified,
-  ] = useState(
-    DEMO_MODE
-  );
 
 
   const [
@@ -245,7 +154,7 @@ function PartnerCreateAccount() {
 
 
   /* =======================================================
-     DERIVED
+     INITIALS
   ======================================================= */
 
   const initials =
@@ -254,17 +163,17 @@ function PartnerCreateAccount() {
       const name =
         form.name.trim();
 
-
       if (!name) {
         return "P";
       }
-
 
       return name
         .charAt(0)
         .toUpperCase();
 
-    }, [form.name]);
+    }, [
+      form.name,
+    ]);
 
 
   /* =======================================================
@@ -296,7 +205,6 @@ function PartnerCreateAccount() {
       if (formMessage) {
         setFormMessage("");
       }
-
     };
 
 
@@ -351,7 +259,6 @@ function PartnerCreateAccount() {
 
 
       setError("");
-
 
       setProfileFile(
         file
@@ -472,7 +379,6 @@ function PartnerCreateAccount() {
       ) {
 
         return "Please enter a valid email address.";
-
       }
 
 
@@ -487,7 +393,6 @@ function PartnerCreateAccount() {
       ) {
 
         return "Company name must be 255 characters or less.";
-
       }
 
 
@@ -497,7 +402,6 @@ function PartnerCreateAccount() {
       ) {
 
         return "Phone number must be 30 characters or less.";
-
       }
 
 
@@ -512,26 +416,10 @@ function PartnerCreateAccount() {
       ) {
 
         return "Password must contain at least 6 characters.";
-
-      }
-
-
-      /*
-       * Only enforce payment when
-       * demo mode is disabled.
-       */
-      if (
-        !DEMO_MODE &&
-        !paymentVerified
-      ) {
-
-        return "A verified payment is required before creating an account.";
-
       }
 
 
       return "";
-
     };
 
 
@@ -575,79 +463,6 @@ function PartnerCreateAccount() {
         );
 
 
-        /*
-         * ===================================================
-         * DEMO MODE
-         *
-         * For today's demo we don't call
-         * the real payment-protected API.
-         *
-         * We simply demonstrate the full
-         * application-submission flow.
-         * ===================================================
-         */
-
-        if (
-          DEMO_MODE
-        ) {
-
-          await new Promise(
-            (resolve) =>
-              setTimeout(
-                resolve,
-                900
-              )
-          );
-
-
-          setSubmitSuccess(
-            true
-          );
-
-
-          setFormMessage(
-            "Partner application submitted successfully."
-          );
-
-
-          setForm(
-            (previous) => ({
-              ...previous,
-              password: "",
-            })
-          );
-
-
-          return;
-        }
-
-
-        /*
-         * ===================================================
-         * PRODUCTION FLOW
-         *
-         * This block will be used again
-         * when Razorpay payment is enabled.
-         * ===================================================
-         */
-
-        const paymentToken =
-          searchParams.get(
-            "payment_token"
-          );
-
-
-        if (
-          !paymentToken
-        ) {
-
-          throw new Error(
-            "Payment token is missing."
-          );
-
-        }
-
-
         const response =
           await fetch(
             `${API_BASE}/api/auth/partner-signup`,
@@ -665,8 +480,26 @@ function PartnerCreateAccount() {
 
               body:
                 JSON.stringify({
+                  /*
+                   * For the current no-payment flow,
+                   * send a flag so the backend knows
+                   * this is the temporary direct signup.
+                   *
+                   * Your backend can later remove
+                   * this when Razorpay is enabled.
+                   */
+
                   payment_token:
-                    paymentToken,
+                    null,
+
+                  no_payment:
+                    true,
+
+                  plan_key:
+                    plan,
+
+                  plan_name:
+                    planLabel,
 
                   name:
                     form.name.trim(),
@@ -715,7 +548,6 @@ function PartnerCreateAccount() {
 
           data =
             null;
-
         }
 
 
@@ -727,7 +559,6 @@ function PartnerCreateAccount() {
             data?.message ||
               `Failed to submit partner application. (${response.status})`
           );
-
         }
 
 
@@ -774,7 +605,7 @@ function PartnerCreateAccount() {
 
 
   /* =======================================================
-     SUCCESS PAGE
+     SUCCESS
   ======================================================= */
 
   if (
@@ -803,8 +634,8 @@ function PartnerCreateAccount() {
 
           <p>
             Your partner account application has
-            been submitted successfully and is
-            now waiting for admin approval.
+            been submitted successfully and is now
+            waiting for admin approval.
           </p>
 
 
@@ -813,7 +644,6 @@ function PartnerCreateAccount() {
             <strong>
               What happens next?
             </strong>
-
 
             <span>
               The Zaploft admin team will review
@@ -831,7 +661,6 @@ function PartnerCreateAccount() {
             <span>
               Login email
             </span>
-
 
             <strong>
               {form.email}
@@ -868,45 +697,6 @@ function PartnerCreateAccount() {
 
       <div className="partner-create-container">
 
-        {/* =================================================
-            DEMO BAR
-        ================================================= */}
-
-        {DEMO_MODE && (
-          <div
-            style={{
-              marginBottom:
-                "16px",
-
-              padding:
-                "10px 14px",
-
-              borderRadius:
-                "10px",
-
-              background:
-                "#fff7ed",
-
-              border:
-                "1px solid #fed7aa",
-
-              color:
-                "#9a3412",
-
-              fontSize:
-                "12px",
-
-              fontWeight:
-                600,
-
-              textAlign:
-                "center",
-            }}
-          >
-            DEMO MODE — Payment verification is temporarily skipped.
-          </div>
-        )}
-
 
         {/* =================================================
             HEADER
@@ -921,12 +711,11 @@ function PartnerCreateAccount() {
             </div>
 
 
-            <div>
+            <div className="partner-create-brand-copy">
 
               <strong>
                 Zaploft
               </strong>
-
 
               <span>
                 MESSAGE AUTOMATION
@@ -953,7 +742,7 @@ function PartnerCreateAccount() {
 
 
         {/* =================================================
-            TITLE
+            INTRO
         ================================================= */}
 
         <section className="partner-create-intro">
@@ -982,7 +771,7 @@ function PartnerCreateAccount() {
 
 
         {/* =================================================
-            PAYMENT / PLAN SUMMARY
+            SELECTED PLAN
         ================================================= */}
 
         <section className="partner-payment-confirmed">
@@ -1000,13 +789,7 @@ function PartnerCreateAccount() {
 
 
             <span>
-              {planLabel} Plan
-              {paymentInfo?.amount
-                ? ` · ${formatAmount(
-                    paymentInfo.amount,
-                    paymentInfo.currency
-                  )}`
-                : ""}
+              {planLabel}
             </span>
 
           </div>
@@ -1020,7 +803,7 @@ function PartnerCreateAccount() {
 
 
         {/* =================================================
-            FORM
+            FORM CARD
         ================================================= */}
 
         <form
@@ -1037,7 +820,6 @@ function PartnerCreateAccount() {
               <h2>
                 Partner Profile
               </h2>
-
 
               <p>
                 Enter the details you want to
@@ -1147,12 +929,11 @@ function PartnerCreateAccount() {
 
 
           {/* =================================================
-              FORM GRID
+              FORM
           ================================================= */}
 
           <div className="partner-create-form-grid">
 
-            {/* NAME */}
 
             <div className="partner-create-field">
 
@@ -1178,8 +959,6 @@ function PartnerCreateAccount() {
 
             </div>
 
-
-            {/* EMAIL */}
 
             <div className="partner-create-field">
 
@@ -1211,8 +990,6 @@ function PartnerCreateAccount() {
             </div>
 
 
-            {/* COMPANY */}
-
             <div className="partner-create-field">
 
               <label htmlFor="partner-company">
@@ -1238,18 +1015,13 @@ function PartnerCreateAccount() {
             </div>
 
 
-            {/* PHONE */}
-
             <div className="partner-create-field">
 
               <label htmlFor="partner-phone">
-
                 Phone Number
-
                 <span>
                   Optional
                 </span>
-
               </label>
 
 
@@ -1270,8 +1042,6 @@ function PartnerCreateAccount() {
 
             </div>
 
-
-            {/* PASSWORD */}
 
             <div className="partner-create-field partner-create-field-full">
 
@@ -1306,7 +1076,7 @@ function PartnerCreateAccount() {
 
 
           {/* =================================================
-              APPROVAL INFO
+              APPROVAL
           ================================================= */}
 
           <div className="partner-create-info">
@@ -1347,7 +1117,6 @@ function PartnerCreateAccount() {
                 !
               </span>
 
-
               <div>
                 {error}
               </div>
@@ -1368,7 +1137,6 @@ function PartnerCreateAccount() {
               <span>
                 ✓
               </span>
-
 
               <div>
                 {formMessage}
@@ -1416,16 +1184,11 @@ function PartnerCreateAccount() {
           </div>
 
 
-          {/* =================================================
-              FOOTER NOTE
-          ================================================= */}
-
           <div className="partner-create-footer-note">
 
             <span>
               🔒
             </span>
-
 
             <span>
               Your information is securely stored
@@ -1444,11 +1207,8 @@ function PartnerCreateAccount() {
         <footer className="partner-create-footer">
 
           <span>
-            ©{" "}
-            {new Date().getFullYear()}{" "}
-            Zaploft
+            © {new Date().getFullYear()} Zaploft
           </span>
-
 
           <span>
             Message Automation Platform

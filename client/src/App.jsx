@@ -1,4 +1,3 @@
-
 import React from "react";
 
 import {
@@ -6,7 +5,6 @@ import {
   Routes,
   Route,
   Navigate,
-  useSearchParams,
 } from "react-router-dom";
 
 import DashboardLayout
@@ -58,69 +56,6 @@ import {
   useAuth,
 } from "./context/AuthContext";
 
-import Payment
-  from "./pages/Payment";
-
-
-/* =========================================================
-   DEMO PAYMENT REDIRECT
-
-   For today's demo:
-
-   /payment?plan=solo
-        ↓
-   /create-account?plan=solo
-
-   /payment?plan=pro
-        ↓
-   /create-account?plan=pro
-
-   /payment?plan=business
-        ↓
-   /create-account?plan=business
-========================================================= */
-
-function DemoPaymentRedirect() {
-  const [
-    searchParams,
-  ] = useSearchParams();
-
-
-  const plan =
-    (
-      searchParams.get(
-        "plan"
-      ) || "solo"
-    )
-      .trim()
-      .toLowerCase();
-
-
-  const validPlans = [
-    "solo",
-    "pro",
-    "business",
-  ];
-
-
-  const selectedPlan =
-    validPlans.includes(
-      plan
-    )
-      ? plan
-      : "solo";
-
-
-  return (
-    <Navigate
-      to={`/create-account?plan=${encodeURIComponent(
-        selectedPlan
-      )}`}
-      replace
-    />
-  );
-}
-
 
 /* =========================================================
    PARTNER LAYOUT
@@ -161,12 +96,10 @@ function AdminLayout() {
 ========================================================= */
 
 function RootRedirect() {
-
   const {
     isAuthenticated,
     role,
   } = useAuth();
-
 
   if (!isAuthenticated) {
     return (
@@ -177,10 +110,7 @@ function RootRedirect() {
     );
   }
 
-
-  if (
-    role === "ADMIN"
-  ) {
+  if (role === "ADMIN") {
     return (
       <Navigate
         to="/admin/dashboard"
@@ -189,10 +119,7 @@ function RootRedirect() {
     );
   }
 
-
-  if (
-    role === "PARTNER"
-  ) {
+  if (role === "PARTNER") {
     return (
       <Navigate
         to="/dashboard"
@@ -200,7 +127,6 @@ function RootRedirect() {
       />
     );
   }
-
 
   return (
     <Navigate
@@ -216,7 +142,6 @@ function RootRedirect() {
 ========================================================= */
 
 function App() {
-
   return (
     <BrowserRouter>
 
@@ -235,42 +160,12 @@ function App() {
 
 
         {/* =================================================
-            DEMO PAYMENT REDIRECT
-
-            IMPORTANT:
-            Payment page is bypassed for today's demo.
-        ================================================= */}
-
-        <Route
-          path="/payment"
-          element={
-            <DemoPaymentRedirect />
-          }
-        />
-
-
-        {/* =================================================
-            KEEP PAYMENT COMPONENT AVAILABLE
-
-            You can remove this later when real
-            Razorpay flow is activated.
-
-            For today's demo the route above handles
-            /payment and redirects to Create Account.
-        ================================================= */}
-
-        {/* 
-        <Route
-          path="/payment-real"
-          element={
-            <Payment />
-          }
-        />
-        */}
-
-
-        {/* =================================================
             PUBLIC PARTNER CREATE ACCOUNT
+
+            DIRECT ACCESS:
+            /create-account?plan=solo
+            /create-account?plan=pro
+            /create-account?plan=business
         ================================================= */}
 
         <Route
@@ -294,7 +189,7 @@ function App() {
 
 
         {/* =================================================
-            PARTNER APPLICATION
+            PARTNER DASHBOARD
         ================================================= */}
 
         <Route
@@ -303,21 +198,12 @@ function App() {
           }
         >
 
-          {/* -----------------------------------------------
-              DASHBOARD
-          ----------------------------------------------- */}
-
           <Route
             path="/dashboard"
             element={
               <Dashboard />
             }
           />
-
-
-          {/* -----------------------------------------------
-              CUSTOMERS
-          ----------------------------------------------- */}
 
           <Route
             path="/dashboard/customers"
@@ -326,22 +212,12 @@ function App() {
             }
           />
 
-
-          {/* -----------------------------------------------
-              CAMPAIGNS
-          ----------------------------------------------- */}
-
           <Route
             path="/dashboard/campaigns"
             element={
               <Campaigns />
             }
           />
-
-
-          {/* -----------------------------------------------
-              REPORTS
-          ----------------------------------------------- */}
 
           <Route
             path="/dashboard/reports"
@@ -350,22 +226,12 @@ function App() {
             }
           />
 
-
-          {/* -----------------------------------------------
-              TEMPLATES
-          ----------------------------------------------- */}
-
           <Route
             path="/dashboard/templates"
             element={
               <Templates />
             }
           />
-
-
-          {/* -----------------------------------------------
-              SETTINGS
-          ----------------------------------------------- */}
 
           <Route
             path="/dashboard/settings"
@@ -374,22 +240,12 @@ function App() {
             }
           />
 
-
-          {/* -----------------------------------------------
-              WHATSAPP
-          ----------------------------------------------- */}
-
           <Route
             path="/campaigns/whatsapp"
             element={
               <WhatsAppCampaign />
             }
           />
-
-
-          {/* -----------------------------------------------
-              SMS
-          ----------------------------------------------- */}
 
           <Route
             path="/campaigns/sms"
@@ -398,22 +254,12 @@ function App() {
             }
           />
 
-
-          {/* -----------------------------------------------
-              MAIL
-          ----------------------------------------------- */}
-
           <Route
             path="/campaigns/mail"
             element={
               <MailCampaign />
             }
           />
-
-
-          {/* -----------------------------------------------
-              COMPATIBILITY ROUTES
-          ----------------------------------------------- */}
 
           <Route
             path="/dashboard/whatsapp"
@@ -449,10 +295,6 @@ function App() {
           }
         >
 
-          {/* -----------------------------------------------
-              ADMIN DASHBOARD
-          ----------------------------------------------- */}
-
           <Route
             path="/admin/dashboard"
             element={
@@ -460,22 +302,12 @@ function App() {
             }
           />
 
-
-          {/* -----------------------------------------------
-              PARTNER APPLICATIONS
-          ----------------------------------------------- */}
-
           <Route
             path="/admin/partner-applications"
             element={
               <AdminPartnerApplications />
             }
           />
-
-
-          {/* -----------------------------------------------
-              PROFILE CHANGE REQUESTS
-          ----------------------------------------------- */}
 
           <Route
             path="/admin/profile-requests"
@@ -490,7 +322,7 @@ function App() {
         {/* =================================================
             FALLBACK
         ================================================= */}
-{/* check */}
+
         <Route
           path="*"
           element={
