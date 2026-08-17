@@ -394,56 +394,66 @@ router.get(
    PAYMENT MUST ALREADY BE VERIFIED.
 ========================================================= */
 
+/* =========================================================
+   PARTNER SIGNUP
+
+   TEMPORARY FLOW:
+   no_payment = true
+   -> create pending application directly
+
+   PRODUCTION FLOW:
+   no_payment = false
+   -> verified Razorpay payment required
+========================================================= */
+
 router.post(
   "/partner-signup",
-  async (
-    req,
-    res
-  ) => {
+  async (req, res) => {
     const client =
       await pool.connect();
-
 
     try {
       const {
         payment_token,
+        no_payment,
+        plan_key,
+        plan_name,
         name,
         email,
         password,
         company_name,
         phone,
         profile_photo,
-      } =
-        req.body;
+      } = req.body;
 
+      const isNoPayment =
+        no_payment === true ||
+        no_payment === "true";
+
+
+      /* =====================================================
+         BASIC VALIDATION
+      ===================================================== */
 
       if (
-        !payment_token ||
         !name ||
         !email ||
         !password ||
         !company_name
       ) {
-        return res.status(
-          400
-        ).json({
+        return res.status(400).json({
           success: false,
-
           message:
-            "Payment, name, email, password and company name are required.",
+            "Name, email, password and company name are required.",
         });
       }
 
 
       if (
-        password.length <
-        6
+        password.length < 6
       ) {
-        return res.status(
-          400
-        ).json({
+        return res.status(400).json({
           success: false,
-
           message:
             "Password must contain at least 6 characters.",
         });
@@ -451,23 +461,21 @@ router.post(
 
 
       const cleanEmail =
-        String(
-          email
-        )
+        String(email)
           .trim()
           .toLowerCase();
 
 
-      /*
-       * The email becomes the login email.
-       * It cannot later be edited by partner.
-       */
+      /* =====================================================
+         CHECK EXISTING USER
+      ===================================================== */
 
       const existingUser =
         await client.query(
           `
           SELECT
-            id
+            id,
+            role
 
           FROM users
 
@@ -477,125 +485,24 @@ router.post(
 
           LIMIT 1
           `,
-          [
-            cleanEmail,
-          ]
+          [cleanEmail]
         );
 
 
       if (
-        existingUser.rows.length
+        existingUser.rows.length > 0
       ) {
-        return res.status(
-          409
-        ).json({
+        return res.status(409).json({
           success: false,
-
           message:
             "An account with this email already exists.",
         });
       }
 
 
-      await client.query(
-        "BEGIN"
-      );
-
-
-      /*
-       * Lock payment row so the
-       * same payment cannot be
-       * consumed twice.
-       */
-
-      const paymentResult =
-        await client.query(
-          `
-          SELECT
-            id,
-            payment_token,
-            plan_key,
-            plan_name,
-            status,
-            used_at
-
-          FROM partner_payment_sessions
-
-          WHERE
-            payment_token = $1
-
-          FOR UPDATE
-          `,
-          [
-            payment_token,
-          ]
-        );
-
-
-      if (
-        paymentResult.rows.length ===
-        0
-      ) {
-        await client.query(
-          "ROLLBACK"
-        );
-
-        return res.status(
-          400
-        ).json({
-          success: false,
-
-          message:
-            "Payment session not found.",
-        });
-      }
-
-
-      const payment =
-        paymentResult.rows[0];
-
-
-      if (
-        payment.status !==
-        "PAID"
-      ) {
-        await client.query(
-          "ROLLBACK"
-        );
-
-        return res.status(
-          400
-        ).json({
-          success: false,
-
-          message:
-            "Payment has not been confirmed.",
-        });
-      }
-
-
-      if (
-        payment.used_at
-      ) {
-        await client.query(
-          "ROLLBACK"
-        );
-
-        return res.status(
-          409
-        ).json({
-          success: false,
-
-          message:
-            "This payment has already been used.",
-        });
-      }
-
-
-      /*
-       * Check pending signup
-       * for the email.
-       */
+      /* =====================================================
+         CHECK EXISTING PENDING APPLICATION
+      ===================================================== */
 
       const existingApplication =
         await client.query(
@@ -615,39 +522,32 @@ router.post(
 
           LIMIT 1
           `,
-          [
-            cleanEmail,
-          ]
+          [cleanEmail]
         );
 
 
       if (
-        existingApplication.rows.length
+        existingApplication.rows.length > 0
       ) {
         const existing =
-          existingApplication
-            .rows[0];
-
+          existingApplication.rows[0];
 
         if (
           existing.status ===
           "PENDING"
         ) {
-          await client.query(
-            "ROLLBACK"
-          );
-
-          return res.status(
-            409
-          ).json({
+          return res.status(409).json({
             success: false,
-
             message:
               "A partner application with this email is already pending.",
           });
         }
       }
 
+
+      /* =====================================================
+         PASSWORD HASH
+      ===================================================== */
 
       const passwordHash =
         await bcrypt.hash(
@@ -656,13 +556,283 @@ router.post(
         );
 
 
-      /*
-       * CREATE PENDING APPLICATION
-       *
-       * DO NOT create users row.
-       */
+      /* =====================================================
+         BEGIN TRANSACTION
+      ===================================================== */
 
-      const signupResult =
+      await client.query(
+        "BEGIN"
+      );
+
+
+      /* =====================================================
+         NO-PAYMENT FLOW
+      ===================================================== */
+
+      if (isNoPayment) {
+
+        const selectedPlanKey =
+          String(
+            plan_key || "solo"
+          )
+            .trim()
+            .toLowerCase();
+
+
+        const allowedPlans = [
+          "solo",
+          "pro",
+          "business",
+        ];
+
+
+        if (
+          !allowedPlans.includes(
+            selectedPlanKey
+          )
+        ) {
+          await client.query(
+            "ROLLBACK"
+          );
+
+          return res.status(400).json({
+            success: false,
+            message:
+              "Invalid plan selected.",
+          });
+        }
+
+
+        const selectedPlanName =
+          String(
+            plan_name ||
+              selectedPlanKey
+                .charAt(0)
+                .toUpperCase() +
+                selectedPlanKey.slice(1)
+          ).trim();
+
+
+        const result =
+          await client.query(
+            `
+            INSERT INTO partner_signup_requests
+            (
+              payment_session_id,
+
+              payment_token,
+
+              plan_key,
+
+              plan_name,
+
+              name,
+
+              email,
+
+              password_hash,
+
+              company_name,
+
+              phone,
+
+              profile_photo,
+
+              status,
+
+              created_at
+            )
+
+            VALUES
+            (
+              NULL,
+
+              NULL,
+
+              $1,
+
+              $2,
+
+              $3,
+
+              $4,
+
+              $5,
+
+              $6,
+
+              $7,
+
+              $8,
+
+              'PENDING',
+
+              CURRENT_TIMESTAMP
+            )
+
+            RETURNING
+              id,
+
+              plan_key,
+
+              plan_name,
+
+              name,
+
+              email,
+
+              company_name,
+
+              phone,
+
+              profile_photo,
+
+              status,
+
+              created_at
+            `,
+            [
+              selectedPlanKey,
+
+              selectedPlanName,
+
+              String(
+                name
+              ).trim(),
+
+              cleanEmail,
+
+              passwordHash,
+
+              String(
+                company_name
+              ).trim(),
+
+              phone
+                ? String(phone).trim()
+                : null,
+
+              profile_photo ||
+                null,
+            ]
+          );
+
+
+        await client.query(
+          "COMMIT"
+        );
+
+
+        return res.status(201).json({
+          success: true,
+
+          message:
+            "Partner application submitted successfully. Your account is waiting for admin approval.",
+
+          application:
+            result.rows[0],
+        });
+      }
+
+
+      /* =====================================================
+         REAL RAZORPAY FLOW
+      ===================================================== */
+
+      if (!payment_token) {
+        await client.query(
+          "ROLLBACK"
+        );
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "A verified payment is required.",
+        });
+      }
+
+
+      /* =====================================================
+         LOCK PAYMENT SESSION
+      ===================================================== */
+
+      const paymentResult =
+        await client.query(
+          `
+          SELECT
+            id,
+            payment_token,
+            plan_key,
+            plan_name,
+            status,
+            used_at
+
+          FROM partner_payment_sessions
+
+          WHERE
+            payment_token = $1
+
+          FOR UPDATE
+          `,
+          [payment_token]
+        );
+
+
+      if (
+        paymentResult.rows.length === 0
+      ) {
+        await client.query(
+          "ROLLBACK"
+        );
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Payment session not found.",
+        });
+      }
+
+
+      const payment =
+        paymentResult.rows[0];
+
+
+      if (
+        payment.status !==
+        "PAID"
+      ) {
+        await client.query(
+          "ROLLBACK"
+        );
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Payment has not been confirmed.",
+        });
+      }
+
+
+      if (
+        payment.used_at
+      ) {
+        await client.query(
+          "ROLLBACK"
+        );
+
+        return res.status(409).json({
+          success: false,
+          message:
+            "This payment has already been used.",
+        });
+      }
+
+
+      /* =====================================================
+         CREATE APPLICATION AFTER PAYMENT
+      ===================================================== */
+
+      const result =
         await client.query(
           `
           INSERT INTO partner_signup_requests
@@ -695,31 +865,53 @@ router.post(
           VALUES
           (
             $1,
+
             $2,
+
             $3,
+
             $4,
+
             $5,
+
             $6,
+
             $7,
+
             $8,
+
             $9,
+
             $10,
+
             'PENDING',
+
             CURRENT_TIMESTAMP
           )
 
           RETURNING
             id,
+
             payment_session_id,
+
             payment_token,
+
             plan_key,
+
             plan_name,
+
             name,
+
             email,
+
             company_name,
+
             phone,
+
             profile_photo,
+
             status,
+
             created_at
           `,
           [
@@ -744,9 +936,7 @@ router.post(
             ).trim(),
 
             phone
-              ? String(
-                  phone
-                ).trim()
+              ? String(phone).trim()
               : null,
 
             profile_photo ||
@@ -755,11 +945,9 @@ router.post(
         );
 
 
-      /*
-       * Payment becomes single-use
-       * only after signup application
-       * has been successfully inserted.
-       */
+      /* =====================================================
+         MARK PAYMENT USED
+      ===================================================== */
 
       await client.query(
         `
@@ -772,9 +960,7 @@ router.post(
         WHERE
           id = $1
         `,
-        [
-          payment.id,
-        ]
+        [payment.id]
       );
 
 
@@ -783,23 +969,21 @@ router.post(
       );
 
 
-      return res.status(
-        201
-      ).json({
+      return res.status(201).json({
         success: true,
 
         message:
-          "Partner application submitted successfully. Your account will be available after admin approval.",
+          "Partner application submitted successfully. Your account is waiting for admin approval.",
 
         application:
-          signupResult.rows[0],
+          result.rows[0],
       });
 
     } catch (error) {
+
       await client.query(
         "ROLLBACK"
       );
-
 
       console.error(
         "PARTNER SIGNUP ERROR:",
@@ -811,22 +995,16 @@ router.post(
         error.code ===
         "23505"
       ) {
-        return res.status(
-          409
-        ).json({
+        return res.status(409).json({
           success: false,
-
           message:
-            "A pending application or account already exists for this email.",
+            "A partner application or account already exists for this email.",
         });
       }
 
 
-      return res.status(
-        500
-      ).json({
+      return res.status(500).json({
         success: false,
-
         message:
           error.message ||
           "Failed to submit partner application.",
